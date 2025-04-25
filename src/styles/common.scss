@@ -1,0 +1,161 @@
+// 通用页面容器
+.page-container {
+  padding: 20px;
+  background-color: $bg-color;
+  min-height: calc(100vh - 84px);
+}
+
+// 页面标题区
+.page-header {
+  margin-bottom: 24px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
+  text-align: center;
+}
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: 8px;
+}
+.page-description {
+  font-size: 14px;
+  color: $text-secondary;
+  margin: 0;
+}
+
+// 搜索卡片
+.search-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+}
+.search-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.search-input {
+  width: 220px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+.action-col {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+// 数据卡片
+.data-card {
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.data-count {
+  font-size: 14px;
+  color: $text-secondary;
+}
+
+// 表格通用
+:deep(.even-row) {
+  background-color: #fafafa;
+}
+:deep(.odd-row) {
+  background-color: #ffffff;
+}
+:deep(.el-table__row:hover) {
+  background-color: #f0f7ff !important;
+}
+
+// 空数据
+.empty-data {
+  padding: 40px 0;
+  text-align: center;
+  color: $text-secondary;
+}
+.empty-data i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.empty-data p {
+  margin-bottom: 16px;
+}
+
+// 弹窗通用
+.common-dialog :deep(.el-dialog__title) {
+  font-weight: 600;
+  color: $text-primary;
+}
+.common-dialog :deep(.el-dialog__body) {
+  padding: 20px 30px;
+}
+
+// 表单标签
+.common-form :deep(.el-form-item__label) {
+  font-weight: 500;
+}
+.common-form :deep(.el-input__count) {
+  background: transparent;
+  font-size: 12px;
+  color: $text-secondary;
+}
+
+// 分页
+.common-pagination {
+  padding: 15px 0;
+  text-align: right;
+  margin-top: 10px;
+}
+:deep(.el-pagination__sizes) {
+  margin: 0 10px 0 0;
+}
+:deep(.el-pagination__jump) {
+  margin-left: 10px;
+}
+:deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
+  background-color: $primary;
+  color: #fff;
+}
+:deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
+  color: $primary;
+}
+
+// 响应式
+@media (max-width: 767px) {
+  .page-title {
+    font-size: 24px;
+  }
+  .search-card .el-col {
+    margin-bottom: 15px;
+  }
+  .search-controls {
+    flex-wrap: wrap;
+  }
+  .search-input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .action-col {
+    justify-content: flex-start;
+  }
+  .add-btn {
+    width: 100%;
+  }
+  .common-dialog :deep(.el-dialog__body) {
+    padding: 15px 20px;
+  }
+  .common-form :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+  .common-pagination {
+    text-align: center;
+  }
+} 

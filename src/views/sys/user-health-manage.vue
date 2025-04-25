@@ -770,45 +770,9 @@ export default {
 </script>
 
 <style scoped>
-/* 页面容器样式 */
-.body-manage-container {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
-
-/* 页面标题样式 */
-.page-header {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
-  text-align: center;
-}
-
-.page-title {
-  font-size: 24px;
-  color: #303133;
-  margin: 0 0 10px 0;
-  font-weight: 600;
-}
-
-.page-description {
-  font-size: 14px;
-  color: #606266;
-  margin: 0;
-}
-
-/* 搜索卡片样式 */
-.search-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
 .search-area {
   padding: 10px;
 }
-
 .search-title {
   margin-bottom: 15px;
   font-size: 16px;
@@ -817,93 +781,53 @@ export default {
   display: flex;
   align-items: center;
 }
-
 .search-title i {
   margin-right: 5px;
   color: #409EFF;
 }
-
-.search-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .search-form .el-form-item {
   margin-bottom: 10px;
   margin-right: 15px;
 }
-
 .search-buttons {
   margin-left: auto;
 }
-
-/* 数据卡片样式 */
-.data-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.data-count {
-  font-size: 14px;
-  color: #909399;
-}
-
-/* 表格样式 */
 .el-table {
   margin-bottom: 15px;
 }
-
-/* 表格行样式 */
 .el-table .warning-row {
   background-color: rgba(245, 108, 108, 0.1);
 }
-
 .el-table .success-row {
   background-color: rgba(103, 194, 58, 0.1);
 }
-
-/* 用户信息样式 */
 .user-info {
   display: flex;
   align-items: center;
 }
-
 .user-name {
   margin-left: 10px;
   font-weight: 500;
 }
-
-/* 展开行样式 */
 .expanded-row {
   padding: 15px;
   background-color: #f9fafc;
   border-radius: 4px;
   margin: 10px;
 }
-
 .health-summary {
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px dashed #dcdfe6;
 }
-
 .health-summary h4 {
   margin: 0 0 10px 0;
   font-size: 16px;
   color: #303133;
 }
-
 .health-tag {
   margin-right: 10px;
 }
-
 .detail-item {
   margin-bottom: 10px;
   padding: 8px;
@@ -911,52 +835,22 @@ export default {
   border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
-
 .detail-label {
   font-weight: 500;
   color: #606266;
   margin-right: 5px;
 }
-
 .detail-value {
   color: #303133;
 }
-
-/* 分页样式 */
-.pagination {
-  margin-top: 20px;
-  text-align: center;
-}
-
-/* 空数据样式 */
-.empty-data {
-  padding: 40px 0;
-  text-align: center;
-}
-
-.empty-data i {
-  font-size: 50px;
-  color: #c0c4cc;
-  margin-bottom: 15px;
-}
-
-.empty-data p {
-  color: #909399;
-  font-size: 14px;
-  margin-bottom: 15px;
-}
-
-/* 表单样式 */
 .body-dialog .el-dialog__body {
   padding: 20px 30px;
 }
-
 .body-form .form-section {
   margin-bottom: 25px;
   padding-bottom: 15px;
   border-bottom: 1px dashed #ebeef5;
 }
-
 .body-form .section-title {
   font-size: 16px;
   color: #409EFF;
@@ -964,7 +858,6 @@ export default {
   padding-left: 10px;
   border-left: 3px solid #409EFF;
 }
-
 .form-tips {
   background-color: #f0f9eb;
   padding: 10px 15px;
@@ -974,36 +867,29 @@ export default {
   align-items: center;
   margin-top: 15px;
 }
-
 .form-tips i {
   margin-right: 5px;
   font-size: 16px;
 }
-
-/* 响应式调整 */
 @media screen and (max-width: 768px) {
   .search-form {
     flex-direction: column;
     align-items: stretch;
   }
-  
   .search-form .el-form-item {
     margin-right: 0;
   }
-  
   .search-buttons {
     margin-left: 0;
     display: flex;
     justify-content: space-between;
   }
-  
   .body-form .el-form-item__label {
     float: none;
     display: block;
     text-align: left;
     padding: 0 0 10px;
   }
-  
   .body-form .el-form-item__content {
     margin-left: 0 !important;
   }

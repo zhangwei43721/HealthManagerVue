@@ -15,8 +15,6 @@
         size="medium"
       >
 
-      <!-- Removed the duplicated/unstructured form items from the top -->
-
       <!-- 分组标题：基本信息 -->
       <div class="form-section">
         <div class="section-title">

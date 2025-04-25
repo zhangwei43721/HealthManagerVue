@@ -204,7 +204,7 @@
         </el-form-item>
         <div class="form-tips" v-if="!userForm.id">
           <i class="el-icon-info"></i>
-          <span>用户创建后，可以通过“修改密码”功能重置密码</span>
+          <span>用户创建后，可以通过"修改密码"功能重置密码</span>
         </div>
       </el-form>
       <!-- 弹窗底部按钮 -->
@@ -556,8 +556,6 @@ export default {
   justify-content: flex-end;
   align-items: center;
 }
-
-
 
 /* 数据卡片样式 */
 .data-card {
