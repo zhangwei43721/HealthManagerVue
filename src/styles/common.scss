@@ -1,161 +1,772 @@
-// 通用页面容器
+/* 
+ * 健康管理系统通用样式
+ * 包含页面布局、组件样式、表单、表格等公共样式定义
+ */
+
+/* =================== 1. 页面布局相关 =================== */
+
+// 页面容器
 .page-container {
-  padding: 20px;
+  padding: 24px;
   background-color: $bg-color;
   min-height: calc(100vh - 84px);
+  transition: all 0.3s;
+  color: $text-primary;
 }
 
 // 页面标题区
 .page-header {
-  margin-bottom: 24px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
   text-align: center;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, $primary, lighten($primary, 15%));
+    border-radius: 3px;
+  }
 }
+
 .page-title {
   font-size: 28px;
   font-weight: 600;
   color: $text-primary;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
 }
+
 .page-description {
-  font-size: 14px;
+  font-size: 15px;
   color: $text-secondary;
   margin: 0;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+// 分栏布局
+.column-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.column-left {
+  flex: 1;
+  min-width: 220px;
+}
+
+.column-right {
+  flex: 2;
+  min-width: 320px;
+}
+
+/* =================== 2. 卡片组件相关 =================== */
+
+// 基础卡片样式
+.base-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background-color: $card-bg;
+  transition: all 0.3s ease;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  
+  &:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
 }
 
 // 搜索卡片
 .search-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s;
+  @extend .base-card;
+  padding: 18px 24px;
+  background: linear-gradient(145deg, #ffffff, #f9fafc);
 }
+
 .search-controls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
 }
+
 .search-input {
-  width: 220px;
-  margin-right: 10px;
-  margin-bottom: 10px;
+  width: 280px;
+  margin-right: 12px;
+  
+  :deep(.el-input__inner) {
+    border-radius: 6px;
+    transition: all 0.25s;
+    border-color: #dcdfe6;
+    
+    &:hover {
+      border-color: #c0c4cc;
+    }
+    
+    &:focus {
+      border-color: $primary;
+      box-shadow: 0 0 0 2px rgba($primary, 0.2);
+    }
+  }
+  
+  :deep(.el-input-group__append) {
+    background-color: $primary;
+    border-color: $primary;
+    color: white;
+    
+    .el-button {
+      color: white;
+      border: none;
+      background: transparent;
+      padding-left: 15px;
+      padding-right: 15px;
+      
+      &:hover {
+        background-color: darken($primary, 5%);
+      }
+    }
+  }
 }
+
 .action-col {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  
+  .el-button {
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: 500;
+    transition: all 0.25s;
+    
+    &.el-button--primary {
+      box-shadow: 0 2px 6px rgba($primary, 0.3);
+      
+      &:hover {
+        box-shadow: 0 4px 10px rgba($primary, 0.4);
+        transform: translateY(-1px);
+      }
+    }
+  }
 }
 
 // 数据卡片
 .data-card {
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s;
+  @extend .base-card;
+  padding: 22px 24px;
 }
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
 }
+
 .data-count {
   font-size: 14px;
   color: $text-secondary;
+  background-color: rgba($primary, 0.08);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
-// 表格通用
+// 简约卡片
+.simple-card {
+  @extend .base-card;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  border-radius: 8px;
+  
+  &:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* =================== 3. 表格相关样式 =================== */
+
+// 表格行样式
+:deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+  
+  .el-table__header-wrapper {
+    th {
+      background-color: #f5f7fa !important;
+      font-weight: 600;
+      color: $text-primary;
+      padding: 12px 0;
+      
+      .cell {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  }
+  
+  .el-table__row {
+    td {
+      padding: 12px 0;
+      transition: background 0.2s;
+      
+      .cell {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  }
+}
+
 :deep(.even-row) {
   background-color: #fafafa;
 }
+
 :deep(.odd-row) {
   background-color: #ffffff;
 }
+
 :deep(.el-table__row:hover) {
   background-color: #f0f7ff !important;
 }
 
-// 空数据
-.empty-data {
-  padding: 40px 0;
-  text-align: center;
-  color: $text-secondary;
-}
-.empty-data i {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-.empty-data p {
-  margin-bottom: 16px;
+:deep(.warning-row) {
+  background-color: rgba($warning, 0.08);
+  
+  &:hover {
+    background-color: rgba($warning, 0.12) !important;
+  }
 }
 
-// 弹窗通用
-.common-dialog :deep(.el-dialog__title) {
-  font-weight: 600;
-  color: $text-primary;
-}
-.common-dialog :deep(.el-dialog__body) {
-  padding: 20px 30px;
+:deep(.success-row) {
+  background-color: rgba($success, 0.08);
+  
+  &:hover {
+    background-color: rgba($success, 0.12) !important;
+  }
 }
 
-// 表单标签
+// 表格边框和间距优化
+:deep(.el-table) {
+  margin-bottom: 18px;
+  border-color: #ebeef5;
+}
+
+:deep(.el-table--border::after), 
+:deep(.el-table--group::after), 
+:deep(.el-table::before) {
+  background-color: #ebeef5;
+}
+
+:deep(.el-table td.el-table__cell), 
+:deep(.el-table th.el-table__cell.is-leaf) {
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-table--border .el-table__cell) {
+  border-right: 1px solid #ebeef5;
+}
+
+// 表格中常用项样式
+.table-operations {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  
+  .el-button.is-circle {
+    transition: all 0.25s;
+    
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+}
+
+// 表格标签
+:deep(.el-tag) {
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-weight: 500;
+  
+  &.el-tag--success {
+    background-color: rgba($success, 0.1);
+    border-color: rgba($success, 0.2);
+    color: darken($success, 10%);
+  }
+  
+  &.el-tag--warning {
+    background-color: rgba($warning, 0.1);
+    border-color: rgba($warning, 0.2);
+    color: darken($warning, 10%);
+  }
+  
+  &.el-tag--danger {
+    background-color: rgba($danger, 0.1);
+    border-color: rgba($danger, 0.2);
+    color: darken($danger, 10%);
+  }
+  
+  &.el-tag--info {
+    background-color: rgba($info, 0.1);
+    border-color: rgba($info, 0.2);
+    color: darken($info, 10%);
+  }
+}
+
+/* =================== 4. 表单相关样式 =================== */
+
+// 通用表单样式
+.common-form {
+  margin-bottom: 24px;
+}
+
 .common-form :deep(.el-form-item__label) {
   font-weight: 500;
+  color: $text-regular;
+  padding-right: 16px;
 }
+
 .common-form :deep(.el-input__count) {
   background: transparent;
   font-size: 12px;
   color: $text-secondary;
 }
 
+.common-form :deep(.el-input__inner) {
+  border-radius: 6px;
+  transition: all 0.25s;
+  
+  &:hover {
+    border-color: #c0c4cc;
+  }
+  
+  &:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 2px rgba($primary, 0.1);
+  }
+}
+
+.common-form :deep(.el-textarea__inner) {
+  border-radius: 6px;
+  transition: all 0.25s;
+  
+  &:hover {
+    border-color: #c0c4cc;
+  }
+  
+  &:focus {
+    border-color: $primary;
+    box-shadow: 0 0 0 2px rgba($primary, 0.1);
+  }
+}
+
+// 表单分组样式
+.form-section {
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed rgba(0,0,0,0.06);
+  
+  &:last-of-type {
+    border-bottom: none;
+    margin-bottom: 18px;
+  }
+}
+
+.section-title {
+  font-size: 16px;
+  color: $primary;
+  margin: 0 0 18px 0;
+  padding-left: 12px;
+  border-left: 3px solid $primary;
+  display: flex;
+  align-items: center;
+  
+  i {
+    margin-right: 10px;
+    font-size: 18px;
+  }
+}
+
+// 表单输入框等样式统一
+.common-form :deep(.el-select),
+.common-form :deep(.el-input),
+.common-form :deep(.el-input-number),
+.common-form :deep(.el-cascader),
+.common-form :deep(.el-date-editor) {
+  width: 100%;
+}
+
+.common-form :deep(.el-radio-group .el-radio) {
+  margin-right: 16px;
+}
+
+.common-form :deep(.el-checkbox-group .el-checkbox) {
+  margin-right: 16px;
+}
+
+// 表单提示样式
+.form-tips {
+  background-color: rgba($success, 0.08);
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: darken($success, 5%);
+  display: flex;
+  align-items: flex-start;
+  margin-top: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  
+  i {
+    margin-right: 10px;
+    font-size: 16px;
+    margin-top: 2px;
+  }
+}
+
+// 开关相关样式
+.form-item-content-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch-label {
+  font-size: 14px;
+  color: $text-regular;
+  margin: 0 6px;
+}
+
+.common-form :deep(.el-switch) {
+  .el-switch__core {
+    border-radius: 12px;
+  }
+}
+
+/* =================== 5. 弹窗相关样式 =================== */
+
+// 通用弹窗样式
+.common-dialog :deep(.el-dialog) {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+}
+
+.common-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(145deg, lighten($primary, 40%), white);
+  padding: 16px 20px;
+}
+
+.common-dialog :deep(.el-dialog__title) {
+  font-weight: 600;
+  color: $text-primary;
+  font-size: 18px;
+}
+
+.common-dialog :deep(.el-dialog__headerbtn) {
+  top: 16px;
+  right: 16px;
+}
+
+.common-dialog :deep(.el-dialog__body) {
+  padding: 24px 30px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.common-dialog :deep(.el-dialog__footer) {
+  text-align: center;
+  padding: 12px 20px 20px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  
+  .el-button {
+    min-width: 90px;
+    border-radius: 6px;
+    padding: 10px 20px;
+    transition: all 0.25s;
+    
+    &.el-button--primary {
+      box-shadow: 0 2px 6px rgba($primary, 0.3);
+      
+      &:hover {
+        box-shadow: 0 4px 12px rgba($primary, 0.4);
+        transform: translateY(-1px);
+      }
+    }
+  }
+}
+
+/* =================== 6. 空数据状态 =================== */
+
+// 空数据状态
+.empty-data {
+  padding: 50px 0;
+  text-align: center;
+  color: $text-secondary;
+  
+  i {
+    font-size: 56px;
+    margin-bottom: 18px;
+    color: lighten($text-secondary, 20%);
+    background: rgba($primary, 0.03);
+    width: 100px;
+    height: 100px;
+    line-height: 100px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  
+  p {
+    margin-bottom: 18px;
+    &:first-of-type {
+      font-size: 16px;
+      color: $text-primary;
+      font-weight: 500;
+    }
+    
+    &:last-child {
+      font-size: 14px;
+      color: lighten($text-secondary, 10%);
+    }
+  }
+}
+
+/* =================== 7. 分页组件样式 =================== */
+
 // 分页
 .common-pagination {
-  padding: 15px 0;
+  padding: 18px 0 5px;
   text-align: right;
-  margin-top: 10px;
+  margin-top: 12px;
 }
+
+:deep(.el-pagination) {
+  font-weight: normal;
+  padding: 0;
+  
+  button {
+    min-width: 32px;
+    height: 32px;
+    line-height: 32px;
+    background: white;
+    color: $text-regular;
+    
+    &:disabled {
+      background-color: #f5f7fa;
+      color: #c0c4cc;
+    }
+  }
+}
+
 :deep(.el-pagination__sizes) {
   margin: 0 10px 0 0;
 }
+
 :deep(.el-pagination__jump) {
   margin-left: 10px;
 }
-:deep(.el-pagination.is-background .el-pager li:not(.disabled).active) {
-  background-color: $primary;
-  color: #fff;
-}
-:deep(.el-pagination.is-background .el-pager li:not(.disabled):hover) {
-  color: $primary;
+
+:deep(.el-pagination.is-background .el-pager li) {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+  margin: 0 3px;
+  background-color: white;
+  border: 1px solid #e4e7ed;
+  color: $text-regular;
+  font-weight: normal;
+  
+  &:not(.disabled).active {
+    background-color: $primary;
+    color: white;
+    border-color: $primary;
+  }
+  
+  &:not(.disabled):hover {
+    color: $primary;
+  }
 }
 
-// 响应式
+/* =================== 8. 通用工具类 =================== */
+
+// 间距工具类
+.mt-sm { margin-top: 8px; }
+.mt-md { margin-top: 16px; }
+.mt-lg { margin-top: 24px; }
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 16px; }
+.mb-lg { margin-bottom: 24px; }
+.my-sm { margin-top: 8px; margin-bottom: 8px; }
+.my-md { margin-top: 16px; margin-bottom: 16px; }
+.my-lg { margin-top: 24px; margin-bottom: 24px; }
+
+.pt-sm { padding-top: 8px; }
+.pt-md { padding-top: 16px; }
+.pt-lg { padding-top: 24px; }
+.pb-sm { padding-bottom: 8px; }
+.pb-md { padding-bottom: 16px; }
+.pb-lg { padding-bottom: 24px; }
+.py-sm { padding-top: 8px; padding-bottom: 8px; }
+.py-md { padding-top: 16px; padding-bottom: 16px; }
+.py-lg { padding-top: 24px; padding-bottom: 24px; }
+
+// 文本工具类
+.text-primary { color: $primary; }
+.text-danger { color: $danger; }
+.text-success { color: $success; }
+.text-warning { color: $warning; }
+.text-info { color: $info; }
+.text-muted { color: $text-secondary; }
+
+.text-bold { font-weight: 600; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.text-xs { font-size: 12px; }
+.text-sm { font-size: 13px; }
+.text-md { font-size: 14px; }
+.text-lg { font-size: 16px; }
+.text-xl { font-size: 18px; }
+
+// 阴影工具类
+.shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.shadow-md { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1); }
+.shadow-lg { box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12); }
+
+// 布局工具类
+.d-flex { display: flex; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.flex-grow { flex-grow: 1; }
+.flex-wrap { flex-wrap: wrap; }
+
+// 常用间距
+.gap-sm { gap: 8px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+
+/* =================== 9. 响应式调整 =================== */
+
 @media (max-width: 767px) {
+  // 页面响应式
+  .page-container {
+    padding: 16px 12px;
+  }
+  
+  .page-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    
+    &::after {
+      width: 60px;
+    }
+  }
+  
   .page-title {
     font-size: 24px;
   }
-  .search-card .el-col {
-    margin-bottom: 15px;
+  
+  .page-description {
+    font-size: 14px;
   }
+  
+  // 搜索区域响应式
+  .search-card {
+    padding: 16px;
+  }
+  
   .search-controls {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
   }
+  
   .search-input {
     width: 100%;
-    margin-bottom: 10px;
+    margin-right: 0;
+    margin-bottom: 12px;
   }
+  
   .action-col {
     justify-content: flex-start;
+    margin-top: 12px;
+    width: 100%;
   }
+  
+  // 卡片响应式
+  .data-card {
+    padding: 16px;
+  }
+  
+  // 按钮响应式
   .add-btn {
     width: 100%;
   }
-  .common-dialog :deep(.el-dialog__body) {
-    padding: 15px 20px;
-  }
+  
+  // 表单响应式
   .common-form :deep(.el-form-item) {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
   }
+  
+  // 弹窗响应式
+  .common-dialog :deep(.el-dialog__body) {
+    padding: 16px 20px;
+    max-height: 80vh;
+  }
+  
+  // 分页响应式
   .common-pagination {
     text-align: center;
+  }
+  
+  // 表单布局响应式
+  .form-section {
+    padding: 16px 12px;
+    margin-bottom: 24px;
+  }
+  
+  .form-item-content-flex {
+    justify-content: flex-start;
+  }
+  
+  // 列布局响应式 
+  .column-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .column-left,
+  .column-right {
+    width: 100%;
+  }
+  
+  // 空状态响应式
+  .empty-data {
+    padding: 40px 0;
+    
+    i {
+      font-size: 48px;
+      width: 80px;
+      height: 80px;
+      line-height: 80px;
+    }
   }
 } 

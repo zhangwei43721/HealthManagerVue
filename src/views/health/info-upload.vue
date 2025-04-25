@@ -1,9 +1,9 @@
 <template>
-  <div class="info-upload-container">
+  <div class="page-container">
     <div class="info-upload-card">
-      <div class="header">
-        <h1 class="title">身体信息上传</h1>
-        <p class="subtitle">请填写您的身体健康数据，以便生成个性化健康报告</p>
+      <div class="page-header">
+        <h1 class="page-title">身体信息上传</h1>
+        <p class="page-description">请填写您的身体健康数据，以便生成个性化健康报告</p>
       </div>
 
       <el-form
@@ -11,7 +11,7 @@
         :rules="rules"
         ref="form"
         label-width="120px"
-        class="form"
+        class="common-form"
         size="medium"
       >
 
@@ -56,10 +56,9 @@
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12">
             <el-form-item label="身高" prop="height">
-              <!-- 修改: max, step, precision, 和 unit -->
               <el-input-number v-model="form.height" :min="50" :max="250" :step="1" :precision="0" controls-position="right">
               </el-input-number>
-              <span class="unit">cm</span> <!-- 修改: 单位改为 cm -->
+              <span class="unit">cm</span>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12">
@@ -87,7 +86,6 @@
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12">
-             <!-- 注意: 血压通常为 "收缩压/舒张压" 格式，InputNumber 可能不适用，但按要求保留 -->
             <el-form-item label="血压" prop="bloodPressure">
               <el-input-number v-model="form.bloodPressure" :min="0" :step="1" controls-position="right">
               </el-input-number>
@@ -97,7 +95,6 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12">
-            <!-- 注意：这里标签是胆固醇，字段是 bloodLipid (血脂)，确认是否匹配 -->
             <el-form-item label="血脂" prop="bloodLipid">
               <el-input-number v-model="form.bloodLipid" :min="0" :step="0.1" :precision="1" controls-position="right">
               </el-input-number>
@@ -114,9 +111,8 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12">
-             <!-- 注意: 视力单位是 "度" (屈光度)，InputNumber 允许小数 -->
             <el-form-item label="视力" prop="vision">
-               <el-input-number v-model="form.vision" :min="0" :step="25" :precision="0" controls-position="right"> <!-- step 设为 25 (常见近视度数间隔)，precision 0 -->
+               <el-input-number v-model="form.vision" :min="0" :step="25" :precision="0" controls-position="right">
               </el-input-number>
               <span class="unit">度</span>
             </el-form-item>
@@ -507,56 +503,23 @@ export default {
 </script>
   
 <style scoped>
-/* 容器样式 */
-.info-upload-container {
-  min-height: 100vh;
-  padding: 30px;
-  background-color: #f8f9fa;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-}
-
+/* 卡片样式 */
 .info-upload-card {
   max-width: 1000px;
   margin: 0 auto;
   background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   padding: 30px;
   animation: fadeIn 0.5s ease-in-out;
 }
 
-/* 标题样式 */
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 10px 0;
-}
-
-.subtitle {
-  color: #7f8c8d;
-  font-size: 16px;
-  margin: 0;
-}
-
-/* 表单样式 */
-.form {
-  margin: 0 auto;
-}
-
 /* 表单分组样式 */
 .form-section {
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   padding: 20px;
   background-color: #f9f9f9;
-  border-radius: 8px;
+  border-radius: 6px;
   border-left: 4px solid #409EFF;
 }
 
@@ -574,25 +537,11 @@ export default {
   font-size: 20px;
 }
 
-/* 表单项样式 */
-.el-form-item {
-  margin-bottom: 22px;
-}
-
-.el-form-item__label {
-  font-weight: 500;
-  color: #606266;
-}
-
+/* 单位文本样式 */
 .unit {
-  margin-left: 10px;
+  margin-left: 8px;
   color: #909399;
   font-size: 14px;
-}
-
-/* 开关样式 */
-.el-switch {
-  margin-right: 8px;
 }
 
 /* 按钮样式 */
@@ -606,12 +555,11 @@ export default {
 
 .form-actions .el-button {
   padding: 12px 25px;
-  font-size: 16px;
   margin: 0 15px;
 }
 
 /* 响应式调整 */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .info-upload-card {
     padding: 20px 15px;
   }
@@ -620,13 +568,8 @@ export default {
     padding: 15px;
   }
   
-  .el-form-item {
-    margin-bottom: 15px;
-  }
-  
   .form-actions .el-button {
     padding: 10px 20px;
-    font-size: 14px;
     margin: 0 10px;
   }
 }

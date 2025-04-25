@@ -1,29 +1,33 @@
 <template>
-  <div class="log-container">
+  <div class="page-container">
     <!-- 顶部标题与说明 -->
-    <div class="log-header">
-      <h1 class="main-title">健康数据日志</h1>
-      <p class="subtitle">管理并回顾您的身体健康信息，支持多维度筛选与操作</p>
+    <div class="page-header">
+      <h1 class="page-title">健康数据日志</h1>
+      <p class="page-description">管理并回顾您的身体健康信息，支持多维度筛选与操作</p>
     </div>
 
     <!-- 搜索与操作区 -->
-    <div class="log-toolbar">
-      <el-input
-        v-model="searchModel.keyword"
-        placeholder="输入姓名、手机号等关键字搜索"
-        prefix-icon="el-icon-search"
-        class="search-input"
-        clearable
-        @keyup.enter.native="searchBodyList"
-        @clear="searchBodyList"
-      >
-        <el-button slot="append" type="primary" icon="el-icon-search" @click="searchBodyList">搜索</el-button>
-      </el-input>
-      <el-button type="primary" icon="el-icon-plus" @click="openAddUi">添加记录</el-button>
+    <div class="search-card">
+      <div class="search-controls">
+        <el-input
+          v-model="searchModel.keyword"
+          placeholder="输入姓名、手机号等关键字搜索"
+          prefix-icon="el-icon-search"
+          class="search-input"
+          clearable
+          @keyup.enter.native="searchBodyList"
+          @clear="searchBodyList"
+        >
+          <el-button slot="append" type="primary" icon="el-icon-search" @click="searchBodyList">搜索</el-button>
+        </el-input>
+        <div class="action-col">
+          <el-button type="primary" icon="el-icon-plus" @click="openAddUi">添加记录</el-button>
+        </div>
+      </div>
     </div>
 
     <!-- 数据区 -->
-    <el-card class="log-card" shadow="hover">
+    <div class="data-card">
       <el-table
         :data="bodyList"
         stripe
@@ -204,27 +208,27 @@
 
         <!-- 自定义空状态显示 -->
         <template #empty>
-           <div class="empty-state">
-             <i class="el-icon-document-remove empty-icon"></i>
-             <div class="empty-title">{{ loading ? '数据加载中...' : '暂无健康日志数据' }}</div>
-             <div v-if="!loading" class="empty-subtitle">请先添加数据或调整筛选条件</div>
+           <div class="empty-data">
+             <i class="el-icon-document-remove"></i>
+             <p>{{ loading ? '数据加载中...' : '暂无健康日志数据' }}</p>
+             <p v-if="!loading">请先添加数据或调整筛选条件</p>
            </div>
          </template>
       </el-table>
 
       <!-- 分页组件 -->
-      <el-pagination
-        v-if="total > 0"
-        style="text-align: center; margin-top: 20px;"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="searchModel.pageNo"
-        :page-sizes="[10, 20, 50, 100]"
-        :page-size="searchModel.pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-      </el-pagination>
-    </el-card>
+      <div v-if="total > 0" class="common-pagination">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="searchModel.pageNo"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="searchModel.pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total">
+        </el-pagination>
+      </div>
+    </div>
 
     <!-- 编辑/新增弹窗 -->
     <el-dialog
@@ -234,12 +238,12 @@
       :fullscreen="isMobile"
       top="5vh"
       destroy-on-close
-      class="body-dialog"
+      class="common-dialog"
       :close-on-click-modal="false"
       @close="clearForm"
      >
       <!-- 绑定动态的 label-position 和 label-width -->
-      <el-form :model="bodyForm" ref="bodyFormRef" :rules="rules" :label-position="isMobile ? 'top' : 'right'" :label-width="isMobile ? 'auto' : formLabelWidth" class="body-form">
+      <el-form :model="bodyForm" ref="bodyFormRef" :rules="rules" :label-position="isMobile ? 'top' : 'right'" :label-width="isMobile ? 'auto' : formLabelWidth" class="common-form">
 
         <!-- 基本信息 Sección -->
         <div class="form-section">
@@ -333,17 +337,14 @@
                      <el-input v-model.number="bodyForm.waterConsumption" type="number" :min="0" autocomplete="off" placeholder="例如: 1500"></el-input>
                  </el-form-item>
                 </el-col>
-                 <!-- 如果需要对齐，可以在这里加一个空的el-col :xs="0" :sm="12" -->
             </el-row>
             <el-row :gutter="20">
-                <!-- 将开关放在各自的列中，sm=24 强制堆叠 -->
                 <el-col :xs="24" :sm="24">
                   <el-form-item label="是否吸烟" prop="smoking">
-                    <!-- 使用 flex 布局让 label 和 switch 在 content 区域内对齐 -->
                     <div class="form-item-content-flex">
-                        <span class="switch-label">否</span> <!-- 额外添加 '否' 文字 -->
+                        <span class="switch-label">否</span>
                         <el-switch v-model="bodyForm.smoking"></el-switch>
-                         <span class="switch-label">是</span> <!-- 额外添加 '是' 文字 -->
+                        <span class="switch-label">是</span>
                     </div>
                   </el-form-item>
                 </el-col>
@@ -785,80 +786,6 @@ export default {
 </script>
 
 <style scoped>
-.log-container {
-  padding: 20px;
-  min-height: calc(100vh - 50px);
-  background-color: #f8f9fa;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-}
-
-.log-header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  padding: 40px 20px 25px 20px;
-  color: #fff;
-  text-align: center;
-  margin-bottom: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-.main-title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-  font-weight: 300;
-}
-
-.log-toolbar {
-  max-width: 1200px;
-  margin: 0 auto 20px auto;
-  display: flex;
-  gap: 15px;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 10px 0;
-}
-.search-input {
-  width: 300px;
-  margin-right: auto;
-}
-
-.log-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  overflow: hidden;
-  background: #fff;
-  padding: 20px;
-}
-
-/* --- 表格样式 START --- */
-.el-table {
-  margin-bottom: 15px;
-}
-
-/* 解决表格和卡片边框重叠问题 */
-.el-table--border::after, .el-table--group::after, .el-table::before {
-    background-color: #EBEEF5;
-}
-.el-table--border, .el-table--group {
-    border-color: #EBEEF5;
-}
-/* header-cell-style prop handles表头样式 */
-/* .el-table th.el-table__cell { ... } */
-
-.el-table td.el-table__cell, .el-table th.el-table__cell.is-leaf {
-    border-bottom: 1px solid #EBEEF5;
-}
-.el-table--border .el-table__cell {
-    border-right: 1px solid #EBEEF5;
-}
-
 /* 表格行样式 */
 .el-table .warning-row {
   background-color: rgba(245, 108, 108, 0.08);
@@ -866,13 +793,8 @@ export default {
 .el-table .success-row {
   background-color: rgba(103, 194, 58, 0.08);
 }
-/* Add hover effect for rows */
-.el-table__row:hover {
-    background-color: #f2f6fc !important;
-}
 
-
-/* 用户信息样式 (姓名列) */
+/* 用户信息样式 */
 .user-info {
   display: flex;
   align-items: center;
@@ -881,12 +803,10 @@ export default {
   margin-left: 10px;
   font-weight: 500;
 }
-/* Avatar color set inline */
-
 
 /* 展开行样式 */
 .expanded-row {
-  padding: 15px 20px;
+  padding: 15px;
   background-color: #f9fafc;
   border-radius: 4px;
   margin: 10px 0;
@@ -908,7 +828,6 @@ export default {
   color: #303133;
 }
 
-
 .detail-item {
   margin-bottom: 10px;
   padding: 8px 12px;
@@ -928,69 +847,38 @@ export default {
   color: #303133;
 }
 
-/* Gender icon style and tag styles set inline or via methods */
-
-
-/* --- 表格样式 END --- */
-
-
-/* 空状态样式 */
-.empty-state {
-  text-align: center;
-  padding: 50px 0;
-  color: #909399;
+/* 表单相关样式 */
+.form-section {
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #ebeef5;
 }
-.empty-icon {
-  font-size: 50px;
+
+.form-section:last-of-type {
+  border-bottom: none;
   margin-bottom: 15px;
 }
-.empty-title {
-  font-size: 18px;
-  color: #303133;
-  margin-bottom: 8px;
-}
-.empty-subtitle {
-  color: #606266;
-  font-size: 14px;
-}
 
-/* --- 弹窗样式 START --- */
-.body-dialog .el-dialog__body {
-  padding: 20px 30px; /* Add padding inside dialog body */
-  overflow-y: auto; /* Add scroll if content overflows vertically */
-  max-height: 70vh; /* Limit max height to leave space for header/footer */
-}
-
-.body-form .form-section {
-  margin-bottom: 25px; /* Space between sections */
-  padding-bottom: 15px;
-  border-bottom: 1px dashed #ebeef5; /* Section separator */
-}
-
-.body-form .form-section:last-of-type {
-    border-bottom: none; /* No border for the last section */
-    margin-bottom: 15px; /* Adjust margin after last section */
-}
-
-.body-form .section-title {
+.section-title {
   font-size: 16px;
-  color: #409EFF; /* Title color */
+  color: #409EFF;
   margin: 0 0 15px 0;
   padding-left: 10px;
-  border-left: 3px solid #409EFF; /* Left border as a visual cue */
-  display: flex; /* Align icon and text */
+  border-left: 3px solid #409EFF;
+  display: flex;
   align-items: center;
 }
-.body-form .section-title i {
-    margin-right: 8px; /* Space between icon and text */
-    font-size: 18px;
+
+.section-title i {
+  margin-right: 8px;
+  font-size: 18px;
 }
 
 .form-tips {
-  background-color: #f0f9eb; /* Light green background */
+  background-color: #f0f9eb;
   padding: 10px 15px;
   border-radius: 4px;
-  color: #67c23a; /* Green text */
+  color: #409EFF;
   display: flex;
   align-items: center;
   margin-top: 15px;
@@ -1002,101 +890,27 @@ export default {
   font-size: 16px;
 }
 
-
-/* Adjust input/select/number/radio/switch group width inside el-col */
-.el-dialog .el-select,
-.el-dialog .el-input,
-.el-dialog .el-input-number,
-.el-dialog .el-radio-group {
-  width: 100%; /* Ensure these elements take full width of their column */
+/* 开关相关样式 */
+.form-item-content-flex {
+  display: flex;
+  align-items: center;
 }
 
-/* Specific style for switch items content area */
-.body-form .form-item-content-flex {
-    display: flex;
-    align-items: center;
-    /* Use flex-grow on switch or let it size naturally, others flex-shrink */
-    /* Justifying content might also be needed depending on desired spacing */
+.switch-label {
+  font-size: 14px;
+  color: #606266;
+  margin: 0 5px;
 }
 
-/* Style for the "是" / "否" labels next to the switch */
-.body-form .form-item-content-flex .switch-label {
-    font-size: 14px; /* Match default form item text size */
-    color: #606266; /* Match default label color */
-    margin: 0 5px; /* Space around the switch text */
-    flex-shrink: 0; /* Prevent text from shrinking */
+/* 响应式调整 */
+@media (max-width: 767px) {
+  .form-section {
+    padding: 15px 10px;
+  }
+  
+  .form-item-content-flex {
+    justify-content: flex-start;
+    gap: 5px;
+  }
 }
-
-/* 弹窗底部按钮居中 */
-.dialog-footer {
-    text-align: center;
-    padding-top: 10px; /* Add some padding above buttons */
-}
-
-/* --- 弹窗样式 END --- */
-
-
-/* --- 响应式调整 START --- */
-@media (max-width: 768px) {
-  /* General layout adjustments */
-  .log-header { padding: 25px 10px 15px 10px; }
-  .main-title { font-size: 1.6rem; }
-  .subtitle { font-size: 0.9rem; }
-  .log-toolbar {
-      flex-direction: column;
-      gap: 10px;
-      align-items: stretch;
-  }
-  .search-input {
-      width: 100%;
-      margin-right: 0;
-  }
-  .log-card, .log-toolbar {
-      max-width: 98vw;
-      padding: 15px;
-  }
-
-  /* Dialog specific adjustments */
-  .body-dialog .el-dialog__body {
-      padding: 15px 20px; /* Reduce padding on small screens */
-      max-height: 80vh; /* Allow more height on mobile if fullscreen is not used */
-  }
-
-  /* Form specific adjustments for mobile */
-  /* When label-position is 'top', adjust padding/margin */
-  .el-form--label-top .el-form-item__label {
-     padding: 0 0 5px; /* Adjust padding */
-     margin: 0; /* Remove margin */
-     width: auto !important; /* Let width be determined by content */
-     text-align: left !important; /* Labels align left when on top */
-  }
-
-   .el-form--label-top .el-form-item__content {
-      margin-left: 0 !important; /* Remove the left margin */
-   }
-
-   /* Adjust expanded row layout */
-   .expanded-row .el-col {
-       margin-bottom: 10px;
-   }
-
-   /* Adjust spacing within form sections on small screens */
-   .body-form .el-row {
-       margin-left: -5px !important; /* Reduce gutter effect if needed */
-       margin-right: -5px !important;
-   }
-   .body-form .el-row > .el-col {
-       padding-left: 5px !important;
-       padding-right: 5px !important;
-   }
-
-   /* Ensure switch labels and switch are inline on mobile when label is on top */
-   .el-form--label-top .form-item-content-flex {
-        justify-content: flex-start; /* Align items to the start */
-        /* Consider adding space between them */
-        gap: 5px; /* Add gap between flex items */
-   }
-}
-/* --- 响应式调整 END --- */
-
 </style>
