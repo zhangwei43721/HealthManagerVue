@@ -51,7 +51,20 @@
 
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
-        <el-skeleton :rows="6" animated />
+        <div v-for="i in 3" :key="i" class="skeleton-item">
+          <el-skeleton animated>
+            <template slot="template">
+              <el-skeleton-item variant="image" style="width: 100%; height: 100px" />
+              <div style="padding: 14px">
+                <el-skeleton-item variant="h3" style="width: 50%" />
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px">
+                  <el-skeleton-item variant="text" style="margin-right: 16px" />
+                  <el-skeleton-item variant="text" style="width: 30%" />
+                </div>
+              </div>
+            </template>
+          </el-skeleton>
+        </div>
       </div>
 
       <!-- 空状态 -->
@@ -135,6 +148,10 @@ import sportApi from "@/api/Function_Menu";
 import DetailDialog from '@/components/DetailDialog.vue';
 
 export default {
+  name: 'KnowledgeView',
+  components: {
+    DetailDialog
+  },
   data() {
     return {
       detailDialogVisible: false,
@@ -285,9 +302,6 @@ export default {
       }
     },
   },
-  components: {
-    DetailDialog
-  }
 };
 </script>
 
@@ -380,9 +394,16 @@ export default {
 
 /* 加载状态样式 */
 .loading-state {
-  padding: 40px;
-  background-color: white;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.skeleton-item {
+  background: #fff;
   border-radius: 8px;
+  overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 

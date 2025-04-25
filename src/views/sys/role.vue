@@ -243,6 +243,19 @@ export default {
     checkScreenWidth() {
       this.isMobile = window.innerWidth < 768; // 小于768px视为移动端
     },
+    // 重置搜索条件
+    resetSearch() {
+      this.searchModel = {
+        roleName: '',
+        pageNo: 1,
+        pageSize: 10
+      };
+      this.getRoleList();
+    },
+    // 设置表格行的类名
+    tableRowClassName({ row, rowIndex }) {
+      return rowIndex % 2 === 0 ? 'even-row' : 'odd-row';
+    },
     // 获取所有菜单数据
     async getAllMenu() {
       try {

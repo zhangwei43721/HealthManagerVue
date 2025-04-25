@@ -3,6 +3,7 @@ import Vue from 'vue'
 import 'normalize.css/normalize.css' // A modern alternative to CSS resets
 
 import ElementUI from 'element-ui'
+import { Skeleton } from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import locale from 'element-ui/lib/locale/lang/zh-CN' // lang i18n
 
@@ -12,14 +13,12 @@ import App from './App'
 import store from './store'
 import router from './router'
 
-
 import '@/permission' // permission control
 
-
-// set ElementUI lang to EN
-// Vue.use(ElementUI, { locale })
-// 如果想要中文版 element-ui，按如下方式声明
+// 注册 Element UI
 Vue.use(ElementUI)
+// 确保 Skeleton 组件被正确注册
+Vue.use(Skeleton)
 
 Vue.config.productionTip = false
 

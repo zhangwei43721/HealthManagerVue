@@ -54,11 +54,6 @@
 import sportApi from '@/api/Function_Menu';
 export default {
   name: 'DetailDialog',
-  data() {
-    return {
-      dialogWidth: '90vw', // 响应式宽度
-    };
-  },
   props: {
     visible: {
       type: Boolean,
@@ -71,6 +66,7 @@ export default {
   },
   data() {
     return {
+      dialogWidth: '90vw', // 响应式宽度
       loading: false,
       fullDetail: { ...this.detailInfo }
     };
