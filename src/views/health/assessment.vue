@@ -254,7 +254,7 @@ export default {
         { label: '身高', value: this.bodyInfo?.height, unit: 'cm' },
         { label: '体重', value: this.bodyInfo?.weight, unit: 'kg' },
         { label: '年龄', value: this.bodyInfo?.age, unit: '岁' },
-        { label: '性别', value: this.bodyInfo?.gender === 'male' ? '男' : '女' },
+        { label: '性别', value: this.bodyInfo?.gender === '男' ? '男' : '女' },
         { label: 'BMI', value: this.bmi ? Number(this.bmi).toFixed(1) : null, highlight: true },
         { label: '体脂率', value: this.bodyInfo?.fatRate ? (this.bodyInfo.fatRate * 100).toFixed(1) : null, unit: '%', highlight: true }
       ];
