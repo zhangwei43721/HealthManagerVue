@@ -1,25 +1,5 @@
 <template>
-  <div class="tags-view-container">
-    <scroll-pane ref="scrollPane" class="tags-view-wrapper" :list="visitedViews" @scroll="handleScroll">
-      <router-link
-        v-for="tag in visitedViews"
-        :key="tag.path"
-        :to="tag.path"
-        class="tags-view-item"
-        :class="{ active: isActive(tag) }"
-        @click.middle.native.prevent="closeSelectedTag(tag)"
-        @contextmenu.prevent.native="openMenu(tag, $event)"
-      >
-        {{ tag.title }}
-        <span v-if="!isAffix(tag)" class="el-icon-close" @click.prevent.stop="closeSelectedTag(tag)" />
-      </router-link>
-    </scroll-pane>
-    <ul v-show="visible" :style="{left: left + 'px', top: top + 'px'}" class="contextmenu">
-      <li @click="closeSelectedTag(selectedTag)">关闭</li>
-      <li @click="closeOthersTags">关闭其它</li>
-      <li @click="closeAllTags">关闭全部</li>
-    </ul>
-  </div>
+  <!-- tags-view 区域已被移除 -->
 </template>
 
 <script>

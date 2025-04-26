@@ -2,7 +2,7 @@
   <div class="sidebar-container" :class="{'has-logo':showLogo}">
     <!-- 显示Logo组件，确保始终显示 -->
     <logo v-if="showLogo" :collapse="isCollapse" />
-    <el-scrollbar wrap-class="scrollbar-wrapper" class="sidebar-scrollbar">
+    <div class="sidebar-scrollbar">
       <el-menu
         :default-active="activeMenu"
         :default-openeds="defaultOpeneds"
@@ -20,7 +20,7 @@
           :base-path="route.path" 
         />
       </el-menu>
-    </el-scrollbar>
+    </div>
   </div>
 </template>
 
@@ -121,12 +121,7 @@ export default {
         width: 100%;
       }
     }
-    ::v-deep .el-scrollbar__bar.is-vertical {
-      right: 0;
-    }
-    ::v-deep .el-scrollbar__view {
-      height: 100%;
-    }
+
   }
 }
 </style>
