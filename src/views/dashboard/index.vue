@@ -134,6 +134,11 @@ export default {
         }]
       };
       myChart.setOption(option);
+      
+      // 添加窗口大小变化监听，自动调整图表大小
+      window.addEventListener('resize', function() {
+        myChart.resize();
+      });
     },
     
     // 身高体重BMI图表
@@ -186,8 +191,8 @@ export default {
         grid: {
           left: '5%',
           right: '5%',
-          bottom: '15%',
-          top: '25%',
+          bottom: '10%',  // 减少底部空间
+          top: '20%',     // 减少顶部空间
           containLabel: true
         },
         xAxis: {
@@ -256,6 +261,11 @@ export default {
       };
       
       myChart.setOption(option);
+      
+      // 添加窗口大小变化监听，自动调整图表大小
+      window.addEventListener('resize', function() {
+        myChart.resize();
+      });
     },
     
     // 生命体征图表 - 采用进度条样式
@@ -287,11 +297,25 @@ export default {
         hrColor = this.themeColors.danger;
       }
       
+      // 血糖状态判断
+      let bsStatus = '正常';
+      let bsColor = this.themeColors.success;
+      const bs = this.bloodSugar[0] || 5.0;
+      if (bs < 3.9) {
+        bsStatus = '偏低';
+        bsColor = this.themeColors.info;
+      } else if (bs > 6.1) {
+        bsStatus = '偏高';
+        bsColor = this.themeColors.danger;
+      }
+      
       // 计算百分比
       const bpMax = 200; // 最大血压值
       const hrMax = 200; // 最大心率值
+      const bsMax = 15;  // 最大血糖值
       const bpPercent = Math.min(100, (bp / bpMax) * 100);
       const hrPercent = Math.min(100, (hr / hrMax) * 100);
+      const bsPercent = Math.min(100, (bs / bsMax) * 100);
       
       const option = {
         title: {
@@ -304,7 +328,7 @@ export default {
           }
         },
         grid: {
-          top: 50,
+          top: 40,
           bottom: 10,
           left: 90,
           right: 100,
@@ -318,7 +342,7 @@ export default {
         },
         yAxis: {
           type: 'category',
-          data: ['心率', '血压'],
+          data: ['心率', '血压', '血糖'],
           axisLine: { show: false },
           axisTick: { show: false },
           axisLabel: {
@@ -339,6 +363,10 @@ export default {
               {
                 value: bpPercent,
                 itemStyle: { color: bpColor }
+              },
+              {
+                value: bsPercent,
+                itemStyle: { color: bsColor }
               }
             ],
             barWidth: 15,
@@ -348,8 +376,10 @@ export default {
               formatter: function(params) {
                 if (params.dataIndex === 0) {
                   return hr + ' bpm (' + hrStatus + ')';
-                } else {
+                } else if (params.dataIndex === 1) {
                   return bp + ' mmHg (' + bpStatus + ')';
+                } else {
+                  return bs + ' mmol/L (' + bsStatus + ')';
                 }
               },
               fontSize: 14,
@@ -363,7 +393,7 @@ export default {
           {
             type: 'bar',
             barWidth: 15,
-            data: [100, 100],
+            data: [100, 100, 100],
             itemStyle: {
               color: 'rgba(0,0,0,0.05)',
               borderRadius: 10
@@ -374,6 +404,11 @@ export default {
       };
       
       myChart.setOption(option);
+      
+      // 添加窗口大小变化监听，自动调整图表大小
+      window.addEventListener('resize', function() {
+        myChart.resize();
+      });
     },
     
     // 健康评分卡（替代雷达图）
@@ -487,6 +522,11 @@ export default {
       };
       
       myChart.setOption(option);
+      
+      // 添加窗口大小变化监听，自动调整图表大小
+      window.addEventListener('resize', function() {
+        myChart.resize();
+      });
     },
     
     // 计算各指标评分
@@ -645,6 +685,11 @@ export default {
         ]
       };
       myChart.setOption(option);
+      
+      // 添加窗口大小变化监听，自动调整图表大小
+      window.addEventListener('resize', function() {
+        myChart.resize();
+      });
     },
   },
   watch: {
@@ -665,6 +710,10 @@ export default {
   created() {
     this.getBodyInfo();
   },
+  beforeDestroy() {
+    // 在组件销毁前移除所有resize事件监听器
+    window.removeEventListener('resize', function() {});
+  }
 };
 </script>
 
@@ -685,28 +734,30 @@ export default {
 /* 顶部区域 - 健康指数和身体数据 */
 .top-section {
   display: flex;
-  margin-bottom: 24px;
+  margin-bottom: 30px; /* 增加与下方图表的间距 */
   gap: 24px;
+  max-height: 300px; /* 控制顶部区域总高度 */
 }
 .health-index-container {
-  flex: 0 0 280px;
+  flex: 0 0 250px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background-color: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   transition: transform 0.3s, box-shadow 0.3s;
+  height: 300px; /* 控制健康指数容器高度 */
 }
 .health-index-container:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 .health-index-water {
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
 }
 .health-index-label {
   font-size: 18px;
@@ -720,12 +771,15 @@ export default {
   display: flex;
   flex-direction: row;
   gap: 16px;
+  min-height: 240px; /* 降低最小高度 */
+  height: 300px; /* 控制身体数据和生命体征区域高度 */
 }
 .metrics-chart {
   background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   transition: transform 0.3s, box-shadow 0.3s;
+  min-height: 180px; /* 降低图表区域最小高度 */
 }
 .metrics-chart-narrow {
   flex: 2;
@@ -741,6 +795,7 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  padding-top: 10px; /* 增加上方间距 */
 }
 .chart-wrapper {
   flex: 1 1 calc(50% - 20px);
@@ -759,6 +814,7 @@ export default {
   width: 100%;
   height: 360px;
   padding: 16px;
+  box-sizing: border-box; /* 确保padding不影响尺寸计算 */
 }
 /* 响应式调整 */
 @media (max-width: 1200px) {
@@ -766,23 +822,55 @@ export default {
     flex: 1 1 100%;
   }
 }
+@media (max-width: 992px) {
+  .body-metrics-container {
+    min-height: 400px;
+  }
+}
+/* 平板尺寸特殊处理（针对820*1180） */
+@media (min-width: 768px) and (max-width: 900px) {
+  .top-section {
+    max-height: none;
+    margin-bottom: 40px;
+  }
+  .body-metrics-container {
+    height: 260px; /* 控制高度 */
+  }
+  .charts-container {
+    padding-top: 20px; /* 增加上边距 */
+  }
+}
 @media (max-width: 768px) {
   .top-section {
     flex-direction: column;
+    max-height: none;
+    margin-bottom: 40px; /* 增加间距 */
   }
   .health-index-container {
     flex: 0 0 auto;
     width: 100%;
+    min-height: 250px; /* 降低最小高度 */
+    height: 250px;
   }
   .body-metrics-container {
     flex-direction: column;
+    min-height: 450px; /* 降低最小高度 */
+    height: auto;
   }
   .metrics-chart-narrow,
   .metrics-chart-wide {
-    height: 240px;
+    height: 220px; /* 降低高度 */
+    min-height: 220px;
   }
   .chart-wrapper {
     flex: 1 1 100%;
+    min-height: 340px; /* 降低最小高度 */
+  }
+  .chart-box {
+    min-height: 280px; /* 降低最小高度 */
+  }
+  .charts-container {
+    padding-top: 20px; /* 增加上边距 */
   }
 }
 </style>
