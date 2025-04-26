@@ -1,4 +1,3 @@
-
 import Vue from 'vue';
 import Router from 'vue-router';
 import Layout from '@/layout';
@@ -31,6 +30,12 @@ export const constantRoutes = [
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index'),
         meta: { title: '首页', icon: 'el-icon-house', affix: true }
+      },
+      {
+        path: 'ai-qa',
+        name: 'AiHealthQA',
+        component: () => import('@/views/health/ai-qa'),
+        meta: { title: 'AI健康问答', icon: 'dashboard' }
       }
     ]
   },

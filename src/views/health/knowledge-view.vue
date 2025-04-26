@@ -233,7 +233,7 @@ export default {
         if (append) {
           this.sportInfos = [...this.sportInfos, ...formattedSportInfos];
         } else {
-          this.sportInfos = formattedSportInfos;
+        this.sportInfos = formattedSportInfos;
         }
         this.originalSportInfos = [...this.sportInfos];
         this.total = total;

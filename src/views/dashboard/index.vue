@@ -15,22 +15,22 @@
           <div id="height-weight-gauge" class="sub-metrics-chart"></div>
           <!-- 心率血压进度条 -->
           <div id="vitals-chart" class="sub-metrics-chart"></div>
-        </div>
-      </div>
+            </div>
+            </div>
       
       <!-- 身体数据可视化区域 - 主布局中保留，便于响应式布局 -->
       <div class="body-metrics-container">
         <!-- 身高体重BMI可视化 - 添加外层容器 -->
         <div class="data-container">
           <div id="height-weight-gauge-main" class="metrics-chart"></div>
-        </div>
+            </div>
         <!-- 心率血压进度条 - 添加外层容器 -->
         <div class="data-container">
           <div id="vitals-chart-main" class="metrics-chart"></div>
-        </div>
-      </div>
+            </div>
+          </div>
     </div>
-    
+
     <!-- 下方图表区域 -->
     <div class="charts-container">
       <!-- 健康评分卡 -->
@@ -213,7 +213,7 @@ export default {
       const heightValue = 1.2; // 固定身高柱状图高度
       const weightValue = 0.8; // 固定体重柱状图高度
       const bmiValue = 0.5;   // 固定BMI柱状图高度
-      
+
       const option = {
         title: {
           text: '身体数据',
@@ -389,7 +389,7 @@ export default {
           text: '生命体征',
           left: 'center',
           top: 0,
-          textStyle: {
+              textStyle: {
             color: '#2c3e50',
             fontSize: 16
           }
@@ -475,7 +475,7 @@ export default {
           }
         ]
       };
-      
+
       myChart.setOption(option);
       
       // 添加窗口大小变化监听，自动调整图表大小
@@ -514,7 +514,7 @@ export default {
       const heightValue = 1.2; // 固定身高柱状图高度
       const weightValue = 0.8; // 固定体重柱状图高度
       const bmiValue = 0.5;   // 固定BMI柱状图高度
-      
+
       const option = {
         title: {
           text: '身体数据',
@@ -689,7 +689,7 @@ export default {
           text: '生命体征',
           left: 'center',
           top: 0,
-          textStyle: {
+            textStyle: {
             color: '#2c3e50',
             fontSize: 16
           }
@@ -775,7 +775,7 @@ export default {
           }
         ]
       };
-      
+
       myChart.setOption(option);
       
       // 添加窗口大小变化监听，自动调整图表大小
@@ -792,7 +792,7 @@ export default {
         return;
       }
       
-      const myChart = echarts.init(chartDom);
+        const myChart = echarts.init(chartDom);
       
       // 计算各项健康评分
       const bmiScore = this.calculateMetricScore('bmi', this.bmi);
@@ -800,12 +800,12 @@ export default {
       const hrScore = this.calculateMetricScore('heartRate', this.heartRate[0]);
       const sugarScore = this.calculateMetricScore('bloodSugar', this.bloodSugar[0]);
       const visionScore = this.calculateMetricScore('vision', this.vision[0]);
-      
-      const option = {
-        title: {
+
+        const option = {
+          title: {
           text: '健康评估分数',
           left: 'center',
-          textStyle: {
+            textStyle: {
             fontSize: 16,
             color: '#2c3e50'
           }
@@ -820,11 +820,11 @@ export default {
           right: '4%',
           bottom: '3%',
           containLabel: true
-        },
-        xAxis: {
+          },
+          xAxis: {
           type: 'category',
           data: ['BMI', '血压', '心率', '血糖', '视力'],
-          axisLabel: {
+            axisLabel: {
             interval: 0,
             color: '#5e6d82'
           },
@@ -832,12 +832,12 @@ export default {
             lineStyle: {
               color: '#eee'
             }
-          },
-          axisTick: {
+            },
+            axisTick: {
             show: false
           }
-        },
-        yAxis: {
+          },
+          yAxis: {
           type: 'value',
           name: '评分',
           min: 0,
@@ -846,11 +846,11 @@ export default {
           axisLabel: {
             color: '#5e6d82'
           },
-          axisLine: {
+            axisLine: {
             show: false
-          },
-          splitLine: {
-            lineStyle: {
+            },
+            splitLine: {
+              lineStyle: {
               color: '#eee'
             }
           }
@@ -980,8 +980,8 @@ export default {
             fontSize: 16,
             fontWeight: 'normal' 
           } 
-        },
-        tooltip: { 
+          },
+          tooltip: {
           trigger: 'axis',
           axisPointer: {
             type: 'shadow'
@@ -1018,13 +1018,13 @@ export default {
               color: '#eee'
             }
           }
-        },
-        series: [
-          { 
+          },
+          series: [
+            {
             name: '血压', 
             data: this.bloodPressure, 
             type: 'line', 
-            smooth: true, 
+              smooth: true,
             lineStyle: { width: 3, color: this.themeColors.primary }, 
             areaStyle: { 
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -1082,7 +1082,7 @@ export default {
           }
         ]
       };
-      myChart.setOption(option);
+        myChart.setOption(option);
       
       // 添加窗口大小变化监听，自动调整图表大小
       window.addEventListener('resize', function() {

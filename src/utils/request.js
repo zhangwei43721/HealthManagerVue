@@ -13,19 +13,16 @@ const service = axios.create({
 // request interceptor
 service.interceptors.request.use(
   config => {
-    // do something before request is sent
-
+    // 在请求发送前做一些处理
     if (store.getters.token) {
-      // let each request carry token
-      // ['X-Token'] is a custom headers key
-      // please modify it according to the actual situation
+      // 让每个请求携带token
       config.headers['X-Token'] = getToken()
     }
     return config
   },
   error => {
-    // do something with request error
-    console.log(error) // for debug
+    // 处理请求错误
+    console.log(error) // 用于调试
     return Promise.reject(error)
   }
 )

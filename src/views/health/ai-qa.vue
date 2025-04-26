@@ -117,6 +117,14 @@ export default {
     visible: {
       type: Boolean,
       default: true
+    },
+    pageName: {
+      type: String,
+      default: ''
+    },
+    showPreGeneratedAdvice: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -128,13 +136,9 @@ export default {
       eventSource: null,
       apiBaseUrl: process.env.VUE_APP_BASE_API, // 从 .env 文件读取后端地址
       typingTimer: null,
-      chatHistory: [], // 历史会话记录
+      conversationId: null, // 当前对话ID
+      pageSuggestion: null // 当前页面的预生成建议
     };
-  },
-  
-  created() {
-    // 尝试从本地存储加载历史记录
-    this.loadChatHistory();
   },
   
   computed: {
@@ -144,16 +148,62 @@ export default {
     hasMessages() {
       return this.messages.length > 0;
     },
+    
+    /**
+     * 从 Vuex 获取用户 ID
+     */
+    userId() {
+      return this.$store.getters.userId;
+    },
+    
+    /**
+     * 从 Vuex 获取当前页面的健康建议
+     */
+    currentPageSuggestion() {
+      if (!this.pageName) return null;
+      return this.$store.getters.getPageSuggestion(this.pageName);
+    }
+  },
+  
+  watch: {
+    // 监听页面名称变化，加载对应的预生成建议
+    pageName: {
+      immediate: true,
+      handler(newPage) {
+        if (newPage && this.showPreGeneratedAdvice) {
+          this.loadPageSuggestion(newPage);
+        }
+      }
+    },
+    
+    // 监听可见性，当变为可见时，如果有页面建议且未显示，则自动显示
+    visible(isVisible) {
+      if (isVisible && this.showPreGeneratedAdvice && this.pageName && !this.hasMessages) {
+        this.displayPageSuggestion();
+      }
+    }
   },
   
   created() {
-    // 尝试从本地存储加载历史记录
-    this.loadChatHistory();
+    // 如果有页面名称，尝试加载页面特定的建议
+    if (this.pageName && this.showPreGeneratedAdvice) {
+      this.loadPageSuggestion(this.pageName);
+    }
+    
+    // 加载历史记录
+    this.loadChatHistoryFromServer();
   },
   
   mounted() {
     // 添加键盘事件监听器，处理Shift+Enter
     document.addEventListener('keydown', this.handleKeyDown);
+    
+    // 初始显示页面建议
+    if (this.visible && this.showPreGeneratedAdvice && this.pageName) {
+      this.$nextTick(() => {
+        this.displayPageSuggestion();
+      });
+    }
   },
   
   beforeDestroy() {
@@ -194,193 +244,250 @@ export default {
       return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     },
     
- // formatMessage 函数现在直接调用重构后的 parseMarkdown
-formatMessage(content) {
-  if (!content) return '';
-  // 直接调用新的解析函数
-  return this.parseMarkdown(content);
-},
+    // formatMessage 函数现在直接调用重构后的 parseMarkdown
+    formatMessage(content) {
+      if (!content) return '';
+      // 直接调用新的解析函数
+      return this.parseMarkdown(content);
+    },
     
     /**
- * 自定义Markdown解析函数 (重构版本)
- */
-parseMarkdown(text) {
-  if (!text) return '';
+     * 自定义Markdown解析函数 (重构版本)
+     */
+    parseMarkdown(text) {
+      if (!text) return '';
 
-  const lines = text.split('\n');
-  let html = '';
-  let inCodeBlock = false;
-  let codeLang = '';
-  let codeContent = [];
-  let inListType = null; // null, 'ul', 'ol'
-  let currentParagraph = []; // 存储当前段落的行
+      const lines = text.split('\n');
+      let html = '';
+      let inCodeBlock = false;
+      let codeLang = '';
+      let codeContent = [];
+      let inListType = null; // null, 'ul', 'ol'
+      let currentParagraph = []; // 存储当前段落的行
 
-  const closeList = () => {
-    if (inListType === 'ul') html += '</ul>\n';
-    if (inListType === 'ol') html += '</ol>\n';
-    inListType = null;
-  };
+      const closeList = () => {
+        if (inListType === 'ul') html += '</ul>\n';
+        if (inListType === 'ol') html += '</ol>\n';
+        inListType = null;
+      };
 
-  const flushParagraph = () => {
-    if (currentParagraph.length > 0) {
-      // 将段落行合并，并处理行内元素
-      const paragraphText = currentParagraph.join('\n'); // 使用换行连接，如果需要<br>，可在parseInline处理
-      html += `<p>${this.parseInline(paragraphText)}</p>\n`;
-      currentParagraph = [];
-    }
-  };
+      const flushParagraph = () => {
+        if (currentParagraph.length > 0) {
+          // 将段落行合并，并处理行内元素
+          const paragraphText = currentParagraph.join('\n'); // 使用换行连接，如果需要<br>，可在parseInline处理
+          html += `<p>${this.parseInline(paragraphText)}</p>\n`;
+          currentParagraph = [];
+        }
+      };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
 
-    // 1. 代码块处理
-    if (line.trim().startsWith('```')) {
-      flushParagraph(); // 代码块开始前结束段落
-      closeList();     // 代码块开始前结束列表
-      if (!inCodeBlock) {
-        inCodeBlock = true;
-        codeLang = line.trim().substring(3).trim();
-        codeContent = []; // 重置代码内容
-      } else {
-        // 关闭代码块，转义并添加
-        const langClass = codeLang ? `language-${this.escapeHtml(codeLang)}` : '';
-        // 转义每一行代码内容
-        const escapedCode = codeContent.map(codeLine => this.escapeHtml(codeLine)).join('\n');
-        html += `<pre><code class="${langClass}">${escapedCode}</code></pre>\n`;
-        inCodeBlock = false;
-        codeLang = '';
+        // 1. 代码块处理
+        if (line.trim().startsWith('```')) {
+          flushParagraph(); // 代码块开始前结束段落
+          closeList();     // 代码块开始前结束列表
+          if (!inCodeBlock) {
+            inCodeBlock = true;
+            codeLang = line.trim().substring(3).trim();
+            codeContent = []; // 重置代码内容
+          } else {
+            // 关闭代码块，转义并添加
+            const langClass = codeLang ? `language-${this.escapeHtml(codeLang)}` : '';
+            // 转义每一行代码内容
+            const escapedCode = codeContent.map(codeLine => this.escapeHtml(codeLine)).join('\n');
+            html += `<pre><code class="${langClass}">${escapedCode}</code></pre>\n`;
+            inCodeBlock = false;
+            codeLang = '';
+          }
+          continue; // 处理完代码块标记行，跳到下一行
+        }
+
+        if (inCodeBlock) {
+          codeContent.push(line); // 收集代码行（稍后转义）
+          continue;
+        }
+
+        // 2. 处理空行 (视为段落分隔符和列表结束符)
+        if (line.trim() === '') {
+          flushParagraph();
+          closeList();
+          continue; // 跳过空行本身
+        }
+
+        // 3. 标题处理 (H1-H3)
+        if (line.startsWith('#')) {
+           flushParagraph();
+           closeList();
+           if (line.startsWith('### ')) {
+               html += `<h3>${this.parseInline(line.substring(4))}</h3>\n`;
+           } else if (line.startsWith('## ')) {
+               html += `<h2>${this.parseInline(line.substring(3))}</h2>\n`;
+           } else if (line.startsWith('# ')) {
+               html += `<h1>${this.parseInline(line.substring(2))}</h1>\n`;
+           } else { // 如果#后没有空格，视为普通文本
+              currentParagraph.push(line);
+           }
+           continue;
+        }
+
+        // 4. 列表项处理
+        const ulMatch = line.match(/^(\s*)([-*+])\s+(.*)/); // 无序列表
+        const olMatch = line.match(/^(\s*)(\d+)\.\s+(.*)/); // 有序列表
+
+        if (ulMatch || olMatch) {
+          flushParagraph(); // 列表项开始前结束段落
+
+          const listType = ulMatch ? 'ul' : 'ol';
+          const itemContent = ulMatch ? ulMatch[3] : olMatch[3];
+
+          if (inListType !== listType) {
+            closeList(); // 关闭不同类型的旧列表
+            html += listType === 'ul' ? '<ul>\n' : '<ol>\n';
+            inListType = listType;
+          }
+
+          // 添加列表项，处理行内元素
+          html += `<li>${this.parseInline(itemContent)}</li>\n`;
+          continue; // 处理完列表项，跳到下一行
+        }
+
+        // 5. 如果当前行不是列表项，但之前在列表中，则关闭列表
+        if (inListType && !ulMatch && !olMatch) {
+           closeList();
+        }
+
+        // 6. 引用处理 (简单版本，不支持嵌套)
+        if (line.startsWith('> ')) {
+            flushParagraph();
+            closeList();
+            html += `<blockquote><p>${this.parseInline(line.substring(2))}</p></blockquote>\n`; // 包裹在p标签内
+            continue;
+        }
+
+        // 7. 水平线 (简单匹配)
+        if (line.match(/^(\*\*\*|---|___)\s*$/)) {
+            flushParagraph();
+            closeList();
+            html += '<hr>\n';
+            continue;
+        }
+
+        // 8. 如果以上都不是，则视为段落内容
+        currentParagraph.push(line);
       }
-      continue; // 处理完代码块标记行，跳到下一行
-    }
 
-    if (inCodeBlock) {
-      codeContent.push(line); // 收集代码行（稍后转义）
-      continue;
-    }
-
-    // 2. 处理空行 (视为段落分隔符和列表结束符)
-    if (line.trim() === '') {
+      // 循环结束后，处理剩余的段落和列表
       flushParagraph();
       closeList();
-      continue; // 跳过空行本身
-    }
 
-    // 3. 标题处理 (H1-H3)
-    if (line.startsWith('#')) {
-       flushParagraph();
-       closeList();
-       if (line.startsWith('### ')) {
-           html += `<h3>${this.parseInline(line.substring(4))}</h3>\n`;
-       } else if (line.startsWith('## ')) {
-           html += `<h2>${this.parseInline(line.substring(3))}</h2>\n`;
-       } else if (line.startsWith('# ')) {
-           html += `<h1>${this.parseInline(line.substring(2))}</h1>\n`;
-       } else { // 如果#后没有空格，视为普通文本
-          currentParagraph.push(line);
-       }
-       continue;
-    }
-
-    // 4. 列表项处理
-    const ulMatch = line.match(/^(\s*)([-*+])\s+(.*)/); // 无序列表
-    const olMatch = line.match(/^(\s*)(\d+)\.\s+(.*)/); // 有序列表
-
-    if (ulMatch || olMatch) {
-      flushParagraph(); // 列表项开始前结束段落
-
-      const listType = ulMatch ? 'ul' : 'ol';
-      const itemContent = ulMatch ? ulMatch[3] : olMatch[3];
-
-      if (inListType !== listType) {
-        closeList(); // 关闭不同类型的旧列表
-        html += listType === 'ul' ? '<ul>\n' : '<ol>\n';
-        inListType = listType;
-      }
-
-      // 添加列表项，处理行内元素
-      html += `<li>${this.parseInline(itemContent)}</li>\n`;
-      continue; // 处理完列表项，跳到下一行
-    }
-
-    // 5. 如果当前行不是列表项，但之前在列表中，则关闭列表
-    if (inListType && !ulMatch && !olMatch) {
-       closeList();
-    }
-
-    // 6. 引用处理 (简单版本，不支持嵌套)
-    if (line.startsWith('> ')) {
-        flushParagraph();
-        closeList();
-        html += `<blockquote><p>${this.parseInline(line.substring(2))}</p></blockquote>\n`; // 包裹在p标签内
-        continue;
-    }
-
-    // 7. 水平线 (简单匹配)
-    if (line.match(/^(\*\*\*|---|___)\s*$/)) {
-        flushParagraph();
-        closeList();
-        html += '<hr>\n';
-        continue;
-    }
-
-    // 8. 如果以上都不是，则视为段落内容
-    currentParagraph.push(line);
-  }
-
-  // 循环结束后，处理剩余的段落和列表
-  flushParagraph();
-  closeList();
-
-  // 添加 markdown-body 类以便于样式化
-  return `<div class="markdown-body">${html.trim()}</div>`;
-},
+      // 添加 markdown-body 类以便于样式化
+      return `<div class="markdown-body">${html.trim()}</div>`;
+    },
     
     /**
      * HTML转义函数，防止XSS
      */
      escapeHtml(unsafe) {
-  if (!unsafe) return '';
-  return unsafe
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
-    .replace(/'/g, '\'');
-},
+      if (!unsafe) return '';
+      return unsafe
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
+        .replace(/'/g, '\'');
+    },
     /**
- * 解析行内 Markdown 元素
- */
-parseInline(text) {
-  if (!text) return '';
-  let html = this.escapeHtml(text); // 先转义，防止链接等注入
+     * 解析行内 Markdown 元素
+     */
+    parseInline(text) {
+      if (!text) return '';
+      let html = this.escapeHtml(text); // 先转义，防止链接等注入
 
-  // 处理行内代码 (```code```) - 优先级高，避免内部内容被其他规则处理
-  html = html.replace(/`([^`]+)`/g, (match, codeContent) => {
-    // 不需要再次转义 codeContent，因为它已经被 escapeHtml 处理过了
-    return `<code>${codeContent}</code>`;
-  });
+      // 处理行内代码 (```code```) - 优先级高，避免内部内容被其他规则处理
+      html = html.replace(/`([^`]+)`/g, (match, codeContent) => {
+        // 不需要再次转义 codeContent，因为它已经被 escapeHtml 处理过了
+        return `<code>${codeContent}</code>`;
+      });
 
-  // 处理粗体 (**)
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  // 处理斜体 (*) - 注意避免匹配 **
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>'); // 使用否定查找来避免匹配 **
+      // 处理粗体 (**)
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // 处理斜体 (*) - 注意避免匹配 **
+      html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>'); // 使用否定查找来避免匹配 **
 
-  // 处理链接 [text](url)
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
-    // 对 URL 进行基础验证或保持原样，但确保 text 是转义过的
-    const safeUrl = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') ? url : '#'; // 简单URL过滤
-    return `<a href="${this.escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${linkText}</a>`; // linkText 已经转义
-  });
+      // 处理链接 [text](url)
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+        // 对 URL 进行基础验证或保持原样，但确保 text 是转义过的
+        const safeUrl = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') ? url : '#'; // 简单URL过滤
+        return `<a href="${this.escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${linkText}</a>`; // linkText 已经转义
+      });
 
-  // 处理自动链接 (简单版本，匹配 http/https)
-  html = html.replace(/(https?:\/\/[^\s<]+)/g, (match, url) => {
-       return `<a href="${this.escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(url)}</a>`;
-   });
+      // 处理自动链接 (简单版本，匹配 http/https)
+      html = html.replace(/(https?:\/\/[^\s<]+)/g, (match, url) => {
+           return `<a href="${this.escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(url)}</a>`;
+       });
 
-  return html;
-},
+      return html;
+    },
     /**
-     * 清空所有消息
+     * 从服务器加载聊天历史
+     */
+    loadChatHistoryFromServer() {
+      const token = this.$store.getters.token;
+      if (!token) {
+        console.error('未找到用户token，无法加载聊天历史');
+        return;
+      }
+      
+      fetch(`${this.apiBaseUrl}/viewHistory`, {
+        method: 'GET',
+        headers: {
+          'X-Token': token,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('网络响应异常');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          // 获取最新的对话ID
+          const latestConversationId = data[0].conversationId;
+          this.conversationId = latestConversationId;
+          
+          // 过滤出最新对话的消息
+          const latestConversation = data.filter(msg => msg.conversationId === latestConversationId);
+          
+          // 转换格式为组件内使用的格式
+          this.messages = latestConversation.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'ai',
+            content: msg.content,
+            time: this.formatTimestamp(msg.timestamp)
+          }));
+          
+          console.log(`已加载对话ID ${latestConversationId} 的历史记录，共 ${this.messages.length} 条消息`);
+        }
+      })
+      .catch(error => {
+        console.error('加载聊天历史失败:', error);
+      });
+    },
+    
+    /**
+     * 格式化时间戳为时间字符串
+     */
+    formatTimestamp(timestamp) {
+      if (!timestamp) return this.getCurrentTime();
+      
+      const date = new Date(timestamp);
+      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    },
+    
+    /**
+     * 重置/清空聊天历史
      */
     clearMessages() {
       this.$confirm('确定要清空所有对话历史吗?', '提示', {
@@ -388,38 +495,43 @@ parseInline(text) {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.messages = [];
-        this.saveChatHistory();
-        this.$message({
-          type: 'success',
-          message: '对话历史已清空'
+        const token = this.$store.getters.token;
+        if (!token) {
+          console.error('未找到用户token，无法清空聊天历史');
+          return;
+        }
+        
+        // 调用后端API清空历史
+        fetch(`${this.apiBaseUrl}/resetHistory${this.conversationId ? `?conversationId=${this.conversationId}` : ''}`, {
+          method: 'GET',
+          headers: {
+            'X-Token': token
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('清空历史失败');
+          }
+          return response.text();
+        })
+        .then(message => {
+          this.messages = [];
+          this.conversationId = null;
+          
+          this.$message({
+            type: 'success',
+            message: '对话历史已清空'
+          });
+          console.log('清空结果:', message);
+        })
+        .catch(error => {
+          console.error('清空聊天历史失败:', error);
+          this.$message({
+            type: 'error',
+            message: '清空历史失败，请稍后重试'
+          });
         });
       }).catch(() => {});
-    },
-    
-    /**
-     * 保存聊天历史到本地存储
-     */
-    saveChatHistory() {
-      try {
-        localStorage.setItem('health-qa-history', JSON.stringify(this.messages));
-      } catch (e) {
-        console.error('保存聊天历史失败:', e);
-      }
-    },
-    
-    /**
-     * 从本地存储加载聊天历史
-     */
-    loadChatHistory() {
-      try {
-        const savedHistory = localStorage.getItem('health-qa-history');
-        if (savedHistory) {
-          this.messages = JSON.parse(savedHistory);
-        }
-      } catch (e) {
-        console.error('加载聊天历史失败:', e);
-      }
     },
     
     /**
@@ -450,9 +562,6 @@ parseInline(text) {
       
       // 开始SSE连接
       this.startSSE(question);
-      
-      // 保存聊天历史
-      this.saveChatHistory();
     },
     
     /**
@@ -486,16 +595,53 @@ parseInline(text) {
         time: time
       });
       currentAiMessageIndex = this.messages.length - 1;
+      
+      // 获取token
+      const token = this.$store.getters.token;
+      if (!token) {
+        console.error('未找到用户token，无法发送聊天请求');
+        this.handleSSEError(currentAiMessageIndex, time, "认证失败，请重新登录");
+        return;
+      }
 
-      // 创建SSE连接
-      this.eventSource = new EventSource(`${this.apiBaseUrl}/chatStream?question=${encodeURIComponent(question)}`);
+      // 构建SSE URL
+      let sseUrl = `${this.apiBaseUrl}/chatStream?question=${encodeURIComponent(question)}`;
+      // 如果有会话ID，则附加
+      if (this.conversationId) {
+        sseUrl += `&conversationId=${this.conversationId}`;
+      }
+      // 将 Token 添加为查询参数
+      if (token) {
+        sseUrl += `&token=${encodeURIComponent(token)}`;
+      } else {
+        console.error('未找到用户token，无法建立SSE连接');
+        this.handleSSEError(currentAiMessageIndex, time, "认证失败，请重新登录");
+        return;
+      }
+
+      // 创建SSE连接 - 移除 headers 选项
+      this.eventSource = new EventSource(sseUrl);
       
       // 连接打开事件
       this.eventSource.onopen = () => {
         console.log("SSE连接已打开");
       };
+      
+      // 监听特殊事件：conversationId
+      this.eventSource.addEventListener('conversationId', (event) => {
+        const newConversationId = event.data;
+        console.log(`收到新的会话ID: ${newConversationId}`);
+        this.conversationId = newConversationId;
+      });
+      
+      // 监听特殊事件：error
+      this.eventSource.addEventListener('error', (event) => {
+        const errorMessage = event.data || "服务器错误，请稍后重试";
+        console.error(`SSE错误事件: ${errorMessage}`);
+        this.handleSSEError(currentAiMessageIndex, time, errorMessage);
+      });
 
-      // 消息接收事件
+      // 常规消息接收事件
       this.eventSource.onmessage = (event) => {
         // 隐藏打字动画，显示实际内容
         this.isTyping = false;
@@ -510,9 +656,6 @@ parseInline(text) {
           if (this.eventSource) {
             this.eventSource.close();
           }
-          
-          // 保存更新后的聊天历史
-          this.saveChatHistory();
           return;
         }
 
@@ -543,29 +686,94 @@ parseInline(text) {
       // 错误处理
       this.eventSource.onerror = (err) => {
         console.error("SSE连接错误:", err);
-        this.isTyping = false;
-        this.loading = false;
-        
-        // 显示错误消息
-        if (currentAiMessageIndex !== -1) {
-          const errorMsg = "\n\n[连接错误，请稍后重试或检查服务器状态]";
-          const updatedContent = this.messages[currentAiMessageIndex].content || errorMsg;
-          
-          // 如果内容为空，直接显示错误消息，否则追加
-          this.$set(this.messages, currentAiMessageIndex, { 
-            role: 'ai', 
-            content: updatedContent.trim() ? updatedContent + errorMsg : errorMsg,
-            time: time
-          });
-        }
-
-        if (this.eventSource) {
-          this.eventSource.close();
-        }
-        
-        // 保存聊天历史
-        this.saveChatHistory();
+        this.handleSSEError(currentAiMessageIndex, time);
       };
+    },
+    
+    /**
+     * 处理SSE错误
+     */
+    handleSSEError(currentAiMessageIndex, time, errorMessage = null) {
+      this.isTyping = false;
+      this.loading = false;
+      
+      // 显示错误消息
+      if (currentAiMessageIndex !== -1) {
+        const errorMsg = `\n\n[${errorMessage || "连接错误，请稍后重试或检查服务器状态"}]`;
+        const updatedContent = this.messages[currentAiMessageIndex].content || errorMsg;
+        
+        // 如果内容为空，直接显示错误消息，否则追加
+        this.$set(this.messages, currentAiMessageIndex, { 
+          role: 'ai', 
+          content: updatedContent.trim() ? updatedContent + errorMsg : errorMsg,
+          time: time
+        });
+      }
+
+      if (this.eventSource) {
+        this.eventSource.close();
+      }
+    },
+    
+    /**
+     * 加载特定页面的预生成建议
+     */
+    loadPageSuggestion(pageName) {
+      if (!pageName || !this.userId) return;
+      
+      // 如果Vuex中已有该页面的建议，直接使用
+      const suggestion = this.$store.getters.getPageSuggestion(pageName);
+      if (suggestion) {
+        this.pageSuggestion = suggestion;
+        return;
+      }
+      
+      // 否则调用 action 获取
+      this.$store.dispatch('user/getPageSuggestion', pageName)
+        .then(suggestion => {
+          this.pageSuggestion = suggestion;
+          if (this.visible && this.showPreGeneratedAdvice && !this.hasMessages) {
+            this.displayPageSuggestion();
+          }
+        })
+        .catch(error => {
+          console.error('加载页面建议失败:', error);
+        });
+    },
+    
+    /**
+     * 显示预生成的页面建议
+     */
+    displayPageSuggestion() {
+      // 如果没有预生成建议或已有消息，则不显示
+      if (!this.pageSuggestion || this.hasMessages) return;
+      
+      // 添加AI消息，显示预生成的建议
+      this.messages.push({
+        role: 'ai',
+        content: `<strong>针对您的健康状况，关于${this.getPageDisplayName()}的建议：</strong><br><br>${this.pageSuggestion.content || this.pageSuggestion}`,
+        time: this.getCurrentTime()
+      });
+      
+      // 滚动到底部
+      this.$nextTick(() => {
+        this.scrollToBottom();
+      });
+    },
+    
+    /**
+     * 获取页面的显示名称
+     */
+    getPageDisplayName() {
+      const pageNames = {
+        'healthAssessment': '健康评估',
+        'diet': '饮食计划',
+        'exercise': '运动建议',
+        'sleep': '睡眠质量',
+        'mentalHealth': '心理健康'
+      };
+      
+      return pageNames[this.pageName] || this.pageName;
     },
   },
 };

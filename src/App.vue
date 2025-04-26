@@ -2,19 +2,20 @@
   <div id="app">
     <router-view />
     <!-- 聊天气泡按钮 -->
-    <button v-if="!showChat" class="chat-bubble-btn" @click="showChat = true" title="智能健康问答">
+    <button v-if="!showChat && isLoggedIn" class="chat-bubble-btn" @click="showChat = true" title="智能健康问答">
       <svg width="32" height="32" viewBox="0 0 32 32">
         <circle cx="16" cy="16" r="16" fill="#42b983"/>
         <text x="16" y="22" fill="#fff" font-size="16" font-family="Arial" text-anchor="middle">AI</text>
       </svg>
     </button>
     <!-- 聊天弹窗 -->
-    <AiHealthQA v-if="showChat" :visible="showChat" @close="showChat = false" />
+    <AiHealthQA v-if="showChat && isLoggedIn" :visible="showChat" @close="showChat = false" />
   </div>
 </template>
 
 <script>
 import AiHealthQA from './views/health/ai-qa.vue';
+import { mapGetters } from 'vuex'
 
 export default {
   name: 'App',
@@ -22,6 +23,14 @@ export default {
   data() {
     return {
       showChat: false
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'token'
+    ]),
+    isLoggedIn() {
+      return !!this.token
     }
   }
 }
