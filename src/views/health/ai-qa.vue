@@ -1,6 +1,9 @@
 <template>
-  <div class="ai-chat-container">
-    <el-card class="ai-chat-card" :body-style="{ padding: '0' }">
+  <transition name="chat-fade">
+    <div v-if="visible" class="ai-chat-container ai-chat-popup">
+      <!-- 关闭按钮 -->
+      <button class="ai-chat-close" @click="$emit('close')" title="关闭">×</button>
+      <el-card class="ai-chat-card" :body-style="{ padding: '0' }">
       <!-- 聊天头部 -->
       <div class="ai-chat-header">
         <div class="ai-assistant-info">
@@ -104,11 +107,18 @@
       </div>
     </el-card>
   </div>
+  </transition>
 </template>
 
 <script>
 export default {
   name: 'AiHealthQA',
+  props: {
+    visible: {
+      type: Boolean,
+      default: true
+    }
+  },
   data() {
     return {
       input: '',
@@ -1051,5 +1061,38 @@ $transition: all 0.3s ease;
     font-size: 12px;
     padding: 6px 12px;
   }
+}
+.ai-chat-popup {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  border-radius: 18px;
+  width: 380px;
+  max-width: 90vw;
+  min-height: 520px;
+  transition: box-shadow 0.2s;
+}
+.ai-chat-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: #888;
+  cursor: pointer;
+  z-index: 10001;
+}
+.ai-chat-close:hover {
+  color: #f56c6c;
+}
+.chat-fade-enter-active, .chat-fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+.chat-fade-enter, .chat-fade-leave-to {
+  opacity: 0;
+  transform: translateY(40px);
 }
 </style>
