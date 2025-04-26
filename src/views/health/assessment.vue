@@ -539,9 +539,25 @@ export default {
 .card-header {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 16px var(--card-padding);
   border-bottom: 1px solid var(--border-color);
   background-color: rgba(247, 250, 252, 0.6);
+}
+
+.card-header .card-icon {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+}
+
+.card-header .card-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-left: 0;
+  color: var(--text-primary);
+  vertical-align: middle;
 }
 
 .card-icon {
