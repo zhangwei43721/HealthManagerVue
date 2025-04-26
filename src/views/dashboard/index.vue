@@ -4,35 +4,46 @@
     
     <!-- 顶部区域 -->
     <div class="top-section">
-      <!-- 健康指数水球图 -->
-      <div class="health-index-container">
-        <div id="health-index-water" class="health-index-water"></div>
-        <div class="health-index-label">健康指数</div>
-        
-        <!-- 添加身体数据和生命体征图表在健康指数下方 -->
-        <div class="sub-metrics-container">
-          <!-- 身高体重BMI可视化 -->
-          <div id="height-weight-gauge" class="sub-metrics-chart"></div>
-          <!-- 心率血压进度条 -->
-          <div id="vitals-chart" class="sub-metrics-chart"></div>
-            </div>
-            </div>
-      
-      <!-- 身体数据可视化区域 - 主布局中保留，便于响应式布局 -->
-      <div class="body-metrics-container">
-        <!-- 身高体重BMI可视化 - 添加外层容器 -->
-        <div class="data-container">
-          <div id="height-weight-gauge-main" class="metrics-chart"></div>
-            </div>
-        <!-- 心率血压进度条 - 添加外层容器 -->
-        <div class="data-container">
-          <div id="vitals-chart-main" class="metrics-chart"></div>
-            </div>
+      <template v-if="bodyInfo">
+        <!-- 健康指数水球图 -->
+        <div class="health-index-container">
+          <div id="health-index-water" class="health-index-water"></div>
+          <div class="health-index-label">健康指数</div>
+          
+          <!-- 添加身体数据和生命体征图表在健康指数下方 -->
+          <div class="sub-metrics-container">
+            <!-- 身高体重BMI可视化 -->
+            <div id="height-weight-gauge" class="sub-metrics-chart"></div>
+            <!-- 心率血压进度条 -->
+            <div id="vitals-chart" class="sub-metrics-chart"></div>
           </div>
+        </div>
+      
+        <!-- 身体数据可视化区域 - 主布局中保留，便于响应式布局 -->
+        <div class="body-metrics-container">
+          <!-- 身高体重BMI可视化 - 添加外层容器 -->
+          <div class="data-container">
+            <div id="height-weight-gauge-main" class="metrics-chart"></div>
+          </div>
+          <!-- 心率血压进度条 - 添加外层容器 -->
+          <div class="data-container">
+            <div id="vitals-chart-main" class="metrics-chart"></div>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="empty-state">
+          <el-empty description="您还未上传身体信息">
+            <el-button type="primary" @click="$router.push('/health/info-upload')">
+              去上传身体信息
+            </el-button>
+          </el-empty>
+        </div>
+      </template>
     </div>
 
     <!-- 下方图表区域 -->
-    <div class="charts-container">
+    <div class="charts-container" v-if="bodyInfo">
       <!-- 健康评分卡 -->
       <div class="chart-wrapper">
         <div id="health-score-chart" class="chart-box"></div>
@@ -81,6 +92,22 @@ export default {
             bodyList: [bodyInfo],
           },
         } = await userApi.getBodyInfo();
+        
+        // 检查是否获取到有效数据
+        if (!bodyInfo || Object.keys(bodyInfo).length === 0) {
+          this.$confirm('您还未上传身体信息，是否现在去上传？', '提示', {
+            confirmButtonText: '去上传',
+            cancelButtonText: '稍后再说',
+            type: 'warning'
+          }).then(() => {
+            this.$router.push('/health/info-upload');
+          }).catch(() => {
+            // 用户选择稍后再说
+          });
+          this.bodyInfo = null;
+          return;
+        }
+        
         this.bodyInfo = bodyInfo;
       } catch (error) {
         this.$router.push('/login');
@@ -130,6 +157,8 @@ export default {
     },
     // 初始化所有图表
     initCharts() {
+      if (!this.bodyInfo) return;
+      
       // 第一次加载时延迟渲染，确保DOM已完全渲染
       setTimeout(() => {
         this.renderHealthIndexWater();
@@ -909,7 +938,7 @@ export default {
     
     // 计算各指标评分
     calculateMetricScore(metric, value) {
-      if (!value) return 75; // 默认评分
+      if (!value) return 0; // 默认评分
       
       let score = 0;
       switch(metric) {
@@ -1257,7 +1286,16 @@ export default {
   width: 100%;
   height: 100%;
 }
-
+.empty-state {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+}
 .charts-container {
   display: flex;
   flex-wrap: wrap;
