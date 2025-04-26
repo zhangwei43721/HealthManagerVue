@@ -17,10 +17,14 @@ export default{
         });
       },
 
-      getAllSportInfo(){
+      getAllSportInfo(pageNo = 1, pageSize = 10){
         return request({
           url: `/sport/getAllSportInfo`,
           method: 'get',
+          params: {
+            pageNo,
+            pageSize
+          }
         });
       },
 

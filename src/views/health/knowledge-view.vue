@@ -152,21 +152,30 @@ export default {
     return {
       detailDialogVisible: false,
       currentDetailInfo: {},
-
       loading: true,
       searchText: "",
       sportInfos: [],
       DetailInfo: [],
       originalSportInfos: [], // 存储原始数据用于重置
       isFiltered: false, // 记录是否已经过滤
-      tagColors: ['success', 'warning', 'danger', 'info', 'primary'] // 标签颜色列表
+      tagColors: ['success', 'warning', 'danger', 'info', 'primary'], // 标签颜色列表
+      // 新增分页相关变量
+      pageNo: 1,
+      pageSize: 10,
+      total: 0,
+      // 无限滚动相关
+      isAllLoaded: false,
+      scrollLoading: false
     };
   },
 
   async created() {
     await this.fetchAllSportInfo();
+    window.addEventListener('scroll', this.handleScroll);
   },
-
+  beforeDestroy() {
+    window.removeEventListener('scroll', this.handleScroll);
+  },
   methods: {
     // 获取标签类名
     getTagClass(index) {
@@ -204,26 +213,15 @@ export default {
     },
     */
 
-    // 重置搜索
-    resetSearch() {
-      this.searchText = "";
-      this.sportInfos = [...this.originalSportInfos];
-      this.isFiltered = false;
-      this.$message({
-        message: "已重置搜索结果",
-        type: "info",
-      });
-    },
-
-    // 获取所有运动信息
-    async fetchAllSportInfo() {
-      this.loading = true;
+    // 获取所有运动信息（支持追加）
+    async fetchAllSportInfo(pageNo = this.pageNo, pageSize = this.pageSize, append = false) {
+      if (this.isAllLoaded || this.scrollLoading) return;
+      this.loading = this.pageNo === 1;
+      this.scrollLoading = true;
       try {
-        const response = await sportApi.getAllSportInfo();
-        // 取得运动信息数组
-        const sportInfoData = response.data.sportInfos;
-        const sportInfos = sportInfoData.slice();
-        // 重构每条运动信息的数据格式
+        const response = await sportApi.getAllSportInfo(pageNo, pageSize);
+        const { rows, total } = response.data;
+        const sportInfos = rows.slice();
         const formattedSportInfos = sportInfos.map((info) => ({
           id: info.id,
           sportType: info.sportType,
@@ -232,9 +230,17 @@ export default {
           suitableFrequency: info.suitableFrequency || '每周 3-5 次',
           recommendedSpeed: info.recommendedSpeed || '中等强度',
         }));
-        
-        this.sportInfos = formattedSportInfos;
-        this.originalSportInfos = [...formattedSportInfos]; // 保存原始数据
+        if (append) {
+          this.sportInfos = [...this.sportInfos, ...formattedSportInfos];
+        } else {
+          this.sportInfos = formattedSportInfos;
+        }
+        this.originalSportInfos = [...this.sportInfos];
+        this.total = total;
+        // 判断是否全部加载
+        if (this.sportInfos.length >= total) {
+          this.isAllLoaded = true;
+        }
       } catch (error) {
         this.$notify({
           title: '加载失败',
@@ -245,26 +251,36 @@ export default {
         console.error(error);
       } finally {
         this.loading = false;
+        this.scrollLoading = false;
       }
     },
-
-    // 搜索功能
+    // 滚动触底加载
+    handleScroll() {
+      if (this.loading || this.scrollLoading || this.isAllLoaded) return;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+      const docHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+      if (scrollTop + windowHeight + 100 >= docHeight) {
+        // 快到底部时加载下一页
+        this.pageNo++;
+        this.fetchAllSportInfo(this.pageNo, this.pageSize, true);
+      }
+    },
+    // 搜索功能（重置分页和数据）
     async Search() {
       if (!this.searchText.trim()) {
         this.resetSearch();
         return;
       }
-      
+      this.pageNo = 1;
+      this.isAllLoaded = false;
       this.loading = true;
       try {
-        const response = await sportApi.getAllSportInfo();
-        const sportInfoData = response.data.sportInfos;
-        // 根据输入的搜索内容进行过滤
-        const filteredSportInfoData = sportInfoData.filter((info) => {
+        const response = await sportApi.getAllSportInfo(this.pageNo, this.pageSize);
+        const { rows, total } = response.data;
+        const filteredSportInfoData = rows.filter((info) => {
           return info.sportType.toLowerCase().includes(this.searchText.toLowerCase());
         });
-        
-        // 重构每条运动信息的数据格式
         const sportInfos = filteredSportInfoData.map((info) => ({
           id: info.id,
           sportType: info.sportType,
@@ -273,12 +289,15 @@ export default {
           suitableFrequency: info.suitableFrequency || '每周 3-5 次',
           recommendedSpeed: info.recommendedSpeed || '中等强度',
         }));
-        
-        // 更新运动信息列表
         this.sportInfos = sportInfos;
         this.isFiltered = true;
-        
-        // 搜索成功提示
+        this.total = total;
+        this.originalSportInfos = [...sportInfos];
+        if (sportInfos.length >= total) {
+          this.isAllLoaded = true;
+        } else {
+          this.isAllLoaded = false;
+        }
         if (sportInfos.length > 0) {
           this.$message({
             message: `找到 ${sportInfos.length} 条相关运动知识`,
@@ -296,6 +315,18 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    // 重置搜索
+    resetSearch() {
+      this.searchText = "";
+      this.pageNo = 1;
+      this.isAllLoaded = false;
+      this.fetchAllSportInfo();
+      this.isFiltered = false;
+      this.$message({
+        message: "已重置搜索结果",
+        type: "info",
+      });
     },
   },
 };
