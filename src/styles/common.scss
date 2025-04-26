@@ -46,10 +46,18 @@
 .page-description {
   font-size: 15px;
   color: $text-secondary;
-  margin: 0;
-  max-width: 700px;
   margin: 0 auto;
+  max-width: 700px;
   line-height: 1.5;
+  text-align: center !important;
+  display: block;
+}
+
+.page-header .page-description {
+  text-align: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100%;
 }
 
 // 分栏布局

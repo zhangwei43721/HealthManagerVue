@@ -1,26 +1,22 @@
 <template>
   <div class="knowledge-container">
     <!-- 顶部标题和搜索区域 -->
-    <div class="knowledge-header">
-      <div class="header-content">
-        <h1 class="main-title">健康知识库</h1>
-        <p class="subtitle">发现适合你的运动和健康生活方式</p>
-        
-        <div class="search-box">
-          <el-input 
-            placeholder="搜索运动种类" 
-            v-model="searchText" 
-            class="search-input"
-            prefix-icon="el-icon-search"
-            @keyup.enter.native="Search"
-            clearable
-          >
-            <el-button slot="append" icon="el-icon-search" @click="Search">搜索</el-button>
-          </el-input>
-        </div>
-      </div>
+    <div class="knowledge-header page-header">
+      <h1 class="page-title">健康知识库</h1>
+      <p class="page-description">发现适合你的运动和健康生活方式</p>
     </div>
-    
+    <div class="search-box" style="margin: 0 auto 24px auto; max-width: 420px;">
+      <el-input 
+        placeholder="搜索运动种类" 
+        v-model="searchText" 
+        class="search-input"
+        prefix-icon="el-icon-search"
+        @keyup.enter.native="Search"
+        clearable
+      >
+        <el-button slot="append" icon="el-icon-search" @click="Search">搜索</el-button>
+      </el-input>
+    </div>
     <!-- 内容区域 -->
     <div class="knowledge-content">
       <!-- 筛选和结果数量 -->
@@ -318,31 +314,18 @@ export default {
 
 /* 顶部样式 */
 .knowledge-header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  padding: 60px 20px;
-  color: white;
+  background: none;
+  padding: 0;
+  color: inherit;
   text-align: center;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 28px;
+  box-shadow: none;
 }
 
-.header-content {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.main-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
+.header-content,
+.main-title,
 .subtitle {
-  font-size: 1.2rem;
-  font-weight: 300;
-  margin-bottom: 30px;
-  opacity: 0.9;
+  all: unset;
 }
 
 /* 搜索框样式 */
