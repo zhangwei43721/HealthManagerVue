@@ -1,103 +1,68 @@
 <template>
   <div class="dashboard-container">
-    <h1 class="dashboard-title">健康数据概览</h1>
+    <h1 class="dashboard-title">健康数据中心</h1>
     
-    <div class="stats-cards">
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12" :md="6" :lg="6">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="el-icon-s-data"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">身高</div>
-              <div class="stat-value">{{ this.bodyInfo.height || '-' }}<span class="unit">m</span></div>
-            </div>
-          </div>
-        </el-col>
-        
-        <el-col :xs="24" :sm="12" :md="6" :lg="6">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="el-icon-s-marketing"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">体重</div>
-              <div class="stat-value">{{ this.bodyInfo.weight || '-' }}<span class="unit">kg</span></div>
-            </div>
-          </div>
-        </el-col>
-        
-        <el-col :xs="24" :sm="12" :md="6" :lg="6">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="el-icon-s-custom"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">BMI</div>
-              <div class="stat-value">{{ this.bmi || '-' }}</div>
-            </div>
-          </div>
-        </el-col>
-        
-        <el-col :xs="24" :sm="12" :md="6" :lg="6">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="el-icon-user"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-label">年龄</div>
-              <div class="stat-value">{{ this.bodyInfo.age || '-' }}</div>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
+    <!-- 顶部区域 -->
+    <div class="top-section">
+      <!-- 健康指数水球图 -->
+      <div class="health-index-container">
+        <div id="health-index-water" class="health-index-water"></div>
+        <div class="health-index-label">健康指数</div>
+      </div>
+      
+      <!-- 身体数据可视化区域 -->
+      <div class="body-metrics-container">
+        <!-- 身高体重BMI可视化 -->
+        <div id="height-weight-gauge" class="metrics-chart metrics-chart-narrow"></div>
+        <!-- 心率血压进度条 -->
+        <div id="vitals-chart" class="metrics-chart metrics-chart-wide"></div>
+      </div>
     </div>
-
+    
+    <!-- 下方图表区域 -->
     <div class="charts-container">
+      <!-- 健康评分卡 -->
       <div class="chart-wrapper">
-        <div class="chart-box" ref="myChart"></div>
+        <div id="health-score-chart" class="chart-box"></div>
       </div>
-
+      <!-- 健康趋势图 -->
       <div class="chart-wrapper">
-        <div id="chart-container" class="chart-box"></div>
-      </div>
-
-      <div class="chart-wrapper">
-        <div id="chart-containerLine" class="chart-box"></div>
+        <div id="trend-chart" class="chart-box"></div>
       </div>
     </div>
   </div>
 </template>
 
-
-
 <script>
 import * as echarts from "echarts";
-
+import 'echarts-liquidfill';
 import userApi from "@/api/userManage";
 import FunctionApi from "@/api/Function_Menu";
 export default {
   data() {
     return {
-      charts: "",
       bodyInfo: "",
       bmi: null,
-      score: null,
       BodyNotesInfo: "",
-
       vision: [],
-      waterConsumption: [],
       bloodSugar: [],
       bloodPressure: [],
       date: [],
       heartRate: [],
+      healthIndex: 0.8, // 默认健康指数
+      themeColors: {
+        primary: '#42b983',
+        secondary: '#1e88e5',
+        success: '#4caf50',
+        warning: '#ff9800',
+        danger: '#f44336',
+        info: '#00bcd4'
+      }
     };
   },
   methods: {
     async getBodyInfo() {
       try {
-        // 使用解构赋值从 userApi.getBodyInfo() 返回的 Promise 对象中提取 data.bodyList 数组的第一个元素（即 bodyInfo 对象）
         const {
           data: {
             bodyList: [bodyInfo],
@@ -105,417 +70,719 @@ export default {
         } = await userApi.getBodyInfo();
         this.bodyInfo = bodyInfo;
       } catch (error) {
-        console.log("获取身体信息错误");
-        
         this.$router.push('/login');
       }
     },
-
-
     async getBodyNotes() {
       try {
-  
         const response = await FunctionApi.getBodyNotes(this.bodyInfo.id);
-
-        // 从返回结果中获取 BodyNotesInfo，并赋值给组件的 BodyNotesInfo 属性
         this.BodyNotesInfo = response.data;
-
-        // 遍历 BodyNotesInfo 数组中的每一个元素，将其各个属性值分别添加到对应的数组中,note包含每一条数据的对象
         this.BodyNotesInfo.forEach((note) => {
           this.vision.push(note.vision);
-          this.waterConsumption.push(note.waterConsumption);
           this.bloodSugar.push(note.bloodSugar);
           this.bloodPressure.push(note.bloodPressure);
           this.heartRate.push(note.heartRate);
-          const formattedDate = new Date(note.date).toLocaleString("en-US", {
+          const formattedDate = new Date(note.date).toLocaleString("zh-CN", {
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
           });
           this.date.push(formattedDate);
         });
-      } catch (error) {
-        console.log("获取身体信息错误");
-      }
+      } catch (error) {}
     },
-
     bmiM() {
-      // 从bodyInfo中获取身高和体重的值，并转换为 Number 类型
       const weight = Number(this.bodyInfo.weight);
-      // 计算BMI值
       const bmiValue = weight / (this.bodyInfo.height * this.bodyInfo.height);
-      // 返回计算结果并保留两位小数
       this.bmi = bmiValue.toFixed(2);
       return bmiValue.toFixed(2);
     },
-
-    BarChart() {
-      const chartDom = document.getElementById("chart-container");
+    // 计算健康指数（融合 BMI、血压、血糖、心率、视力，算法可根据实际需求调整）
+    calcHealthIndex() {
+      let score = 100;
+      // BMI 18.5~24.9 最优
+      if (this.bmi < 18.5) score -= 10;
+      else if (this.bmi > 24.9) score -= 10;
+      // 血压（假设正常120）
+      if (this.bloodPressure[0] && (this.bloodPressure[0] < 90 || this.bloodPressure[0] > 140)) score -= 10;
+      // 血糖（假设正常4~7）
+      if (this.bloodSugar[0] && (this.bloodSugar[0] < 4 || this.bloodSugar[0] > 7)) score -= 10;
+      // 心率（假设正常60~100）
+      if (this.heartRate[0] && (this.heartRate[0] < 60 || this.heartRate[0] > 100)) score -= 10;
+      // 视力（假设正常1.0及以上）
+      if (this.vision[0] && this.vision[0] < 1.0) score -= 10;
+      this.healthIndex = Math.max(0, Math.min(1, score / 100));
+    },
+    // 健康指数水球图
+    renderHealthIndexWater() {
+      const chartDom = document.getElementById("health-index-water");
       const myChart = echarts.init(chartDom);
-
       const option = {
-        color: ["#3398DB"],
-        tooltip: {
-          trigger: "axis",
-          axisPointer: {
-            type: "shadow",
-          },
-        },
-        grid: {
-          left: "3%",
-          right: "4%",
-          bottom: "3%",
-          containLabel: true,
-        },
-        title: {
-          text: "视力变化趋势图",
-          textStyle: {
-            fontWeight: "normal",
-            fontSize: 25,
-            color: "#666",
-          },
-          left: "center",
-          top: 20,
-          padding: [10, 10, 0, 10],
-        },
-        xAxis: [
-          {
-            type: "category",
-            data: this.date,
-            axisTick: {
-              alignWithLabel: true,
-            },
-            axisLabel: {
-              interval: 1, //设置X轴文字显示间隔
-              rotate: 45, //设置X轴文字旋转角度
-              textStyle: {
-                fontSize: 12, //设置X轴文字样式
-              },
-            },
-          },
-        ],
-        yAxis: [
-          {
-            type: "value",
-            axisLabel: {
-              textStyle: {
-                fontSize: 12, //设置Y轴文字样式
-              },
-            },
-          },
-        ],
-        series: [
-          {
-            name: "视力",
-            type: "bar",
-            barWidth: "60%",
-            data: this.vision,
-            itemStyle: {
-              // 阴影的大小
-              shadowBlur: 5,
-              // 阴影水平方向上的偏移
-              shadowOffsetX: 2,
-              // 阴影垂直方向上的偏移
-              shadowOffsetY: 2,
-              // 阴影颜色
-              shadowColor: "rgba(0, 0, 0, 0.5)",
-              // 柱状图圆角，初始化效果
-              barBorderRadius: 5,
-            },
-          },
-        ],
+        series: [{
+          type: 'liquidFill',
+          data: [this.healthIndex],
+          radius: '85%',
+          color: [this.themeColors.primary, this.themeColors.info],
+          backgroundStyle: { color: '#f5f7fa' },
+          outline: { borderDistance: 4, itemStyle: { borderColor: this.themeColors.primary, borderWidth: 3 } },
+          label: { 
+            fontSize: 28, 
+            color: this.themeColors.secondary, 
+            insideColor: '#fff', 
+            formatter: (v) => `${Math.round(v.value*100)}%` 
+          }
+        }]
       };
-
       myChart.setOption(option);
     },
-    area() {
-      const chartDom = document.getElementById("chart-containerLine");
+    
+    // 身高体重BMI图表
+    renderHeightWeightGauge() {
+      const chartDom = document.getElementById("height-weight-gauge");
       const myChart = echarts.init(chartDom);
-
+      
+      // 计算理想体重范围 (身高-105)±10%
+      const idealWeight = (this.bodyInfo.height * 100 - 105);
+      const weightLowerBound = idealWeight * 0.9;
+      const weightUpperBound = idealWeight * 1.1;
+      
+      // 判断当前体重状态
+      let weightStatus = '正常';
+      let statusColor = this.themeColors.success;
+      if (this.bodyInfo.weight < weightLowerBound) {
+        weightStatus = '偏轻';
+        statusColor = this.themeColors.warning;
+      } else if (this.bodyInfo.weight > weightUpperBound) {
+        weightStatus = '偏重';
+        statusColor = this.themeColors.warning;
+      }
+      
+      // 计算固定展示高度而不是比例转换
+      const heightValue = 1.2; // 固定身高柱状图高度
+      const weightValue = 0.8; // 固定体重柱状图高度
+      const bmiValue = 0.5;   // 固定BMI柱状图高度
+      
       const option = {
         title: {
-          text: "血压血糖变化趋势图",
+          text: '身体数据',
+          left: 'center',
+          top: 0,
           textStyle: {
-            fontWeight: "normal",
-            fontSize: 25,
-            color: "#666",
-          },
-          left: "center",
-          top: 20,
-          padding: [10, 10, 0, 10],
+            color: '#2c3e50',
+            fontSize: 16
+          }
         },
         tooltip: {
-          trigger: "axis",
+          formatter: function(params) {
+            if (params.dataIndex === 0) {
+              return '身高: ' + this.bodyInfo.height + ' m';
+            } else if (params.dataIndex === 1) {
+              return '体重: ' + this.bodyInfo.weight + ' kg (' + weightStatus + ')';
+            } else {
+              return 'BMI: ' + this.bmi;
+            }
+          }.bind(this)
         },
-        legend: {
-          data: ["血压", "血糖"],
+        grid: {
+          left: '5%',
+          right: '5%',
+          bottom: '15%',
+          top: '25%',
+          containLabel: true
         },
         xAxis: {
-          type: "category",
-          data: this.date,
+          type: 'category',
+          data: ['身高', '体重', 'BMI'],
+          axisLine: { show: false },
+          axisTick: { show: false },
           axisLabel: {
-            interval: 1, //设置X轴文字显示间隔
-            textStyle: {
-              fontSize: 12, //设置X轴文字样式
-            },
-          },
+            color: '#5e6d82',
+            fontSize: 12,
+            interval: 0
+          }
         },
         yAxis: {
-          type: "value",
+          type: 'value',
+          show: false,
+          max: 1.5
         },
         series: [
           {
-            name: "血压",
-            data: this.bloodPressure,
-            type: "line",
+            name: '数值',
+            type: 'bar',
+            barWidth: 40,
+            z: 12,
+            itemStyle: {
+              color: function(params) {
+                const colors = [this.themeColors.primary, statusColor, this.themeColors.secondary];
+                return colors[params.dataIndex];
+              }.bind(this),
+              borderRadius: [5, 5, 0, 0]
+            },
+            data: [
+              {
+                value: heightValue,
+                label: {
+                  show: true,
+                  position: 'top',
+                  formatter: this.bodyInfo.height + ' m',
+                  fontSize: 14,
+                  color: '#5e6d82'
+                }
+              },
+              {
+                value: weightValue,
+                label: {
+                  show: true,
+                  position: 'top',
+                  formatter: this.bodyInfo.weight + ' kg\n' + weightStatus,
+                  fontSize: 14,
+                  color: '#5e6d82'
+                }
+              },
+              {
+                value: bmiValue,
+                label: {
+                  show: true,
+                  position: 'top',
+                  formatter: this.bmi + '\nBMI',
+                  fontSize: 14,
+                  color: '#5e6d82'
+                }
+              }
+            ]
+          }
+        ]
+      };
+      
+      myChart.setOption(option);
+    },
+    
+    // 生命体征图表 - 采用进度条样式
+    renderVitalsChart() {
+      const chartDom = document.getElementById("vitals-chart");
+      const myChart = echarts.init(chartDom);
+      
+      // 血压状态判断
+      let bpStatus = '正常';
+      let bpColor = this.themeColors.success;
+      const bp = this.bloodPressure[0] || 120;
+      if (bp < 90) {
+        bpStatus = '偏低';
+        bpColor = this.themeColors.info;
+      } else if (bp > 140) {
+        bpStatus = '偏高';
+        bpColor = this.themeColors.danger;
+      }
+      
+      // 心率状态判断
+      let hrStatus = '正常';
+      let hrColor = this.themeColors.success;
+      const hr = this.heartRate[0] || 75;
+      if (hr < 60) {
+        hrStatus = '偏低';
+        hrColor = this.themeColors.info;
+      } else if (hr > 100) {
+        hrStatus = '偏高';
+        hrColor = this.themeColors.danger;
+      }
+      
+      // 计算百分比
+      const bpMax = 200; // 最大血压值
+      const hrMax = 200; // 最大心率值
+      const bpPercent = Math.min(100, (bp / bpMax) * 100);
+      const hrPercent = Math.min(100, (hr / hrMax) * 100);
+      
+      const option = {
+        title: {
+          text: '生命体征',
+          left: 'center',
+          top: 0,
+          textStyle: {
+            color: '#2c3e50',
+            fontSize: 16
+          }
+        },
+        grid: {
+          top: 50,
+          bottom: 10,
+          left: 90,
+          right: 100,
+          containLabel: false
+        },
+        xAxis: {
+          min: 0,
+          max: 100,
+          show: false,
+          type: 'value'
+        },
+        yAxis: {
+          type: 'category',
+          data: ['心率', '血压'],
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#5e6d82',
+            fontSize: 14,
+            margin: 16
+          }
+        },
+        series: [
+          {
+            type: 'bar',
+            name: '进度',
+            data: [
+              {
+                value: hrPercent,
+                itemStyle: { color: hrColor }
+              },
+              {
+                value: bpPercent,
+                itemStyle: { color: bpColor }
+              }
+            ],
+            barWidth: 15,
+            label: {
+              show: true,
+              position: 'right',
+              formatter: function(params) {
+                if (params.dataIndex === 0) {
+                  return hr + ' bpm (' + hrStatus + ')';
+                } else {
+                  return bp + ' mmHg (' + bpStatus + ')';
+                }
+              },
+              fontSize: 14,
+              color: '#5e6d82'
+            },
+            itemStyle: {
+              borderRadius: 10
+            },
+            z: 10
           },
           {
-            name: "血糖",
-            data: this.bloodSugar,
-            type: "line",
-          },
-        ],
+            type: 'bar',
+            barWidth: 15,
+            data: [100, 100],
+            itemStyle: {
+              color: 'rgba(0,0,0,0.05)',
+              borderRadius: 10
+            },
+            z: 5
+          }
+        ]
       };
-
+      
+      myChart.setOption(option);
+    },
+    
+    // 健康评分卡（替代雷达图）
+    renderHealthScoreChart() {
+      const chartDom = document.getElementById("health-score-chart");
+      const myChart = echarts.init(chartDom);
+      
+      // 计算各项健康评分
+      const bmiScore = this.calculateMetricScore('bmi', this.bmi);
+      const bpScore = this.calculateMetricScore('bloodPressure', this.bloodPressure[0]);
+      const hrScore = this.calculateMetricScore('heartRate', this.heartRate[0]);
+      const sugarScore = this.calculateMetricScore('bloodSugar', this.bloodSugar[0]);
+      const visionScore = this.calculateMetricScore('vision', this.vision[0]);
+      
+      const option = {
+        title: {
+          text: '健康评估分数',
+          left: 'center',
+          textStyle: {
+            fontSize: 16,
+            color: '#2c3e50'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          formatter: '{b}: {c}分'
+        },
+        grid: {
+          top: '20%',
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: ['BMI', '血压', '心率', '血糖', '视力'],
+          axisLabel: {
+            interval: 0,
+            color: '#5e6d82'
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#eee'
+            }
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '评分',
+          min: 0,
+          max: 100,
+          interval: 20,
+          axisLabel: {
+            color: '#5e6d82'
+          },
+          axisLine: {
+            show: false
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#eee'
+            }
+          }
+        },
+        series: [
+          {
+            name: '评分',
+            type: 'bar',
+            barWidth: '40%',
+            itemStyle: {
+              color: function(params) {
+                const score = params.value;
+                if (score >= 80) return this.themeColors.success;
+                if (score >= 60) return this.themeColors.primary;
+                if (score >= 40) return this.themeColors.warning;
+                return this.themeColors.danger;
+              }.bind(this),
+              borderRadius: [5, 5, 0, 0]
+            },
+            data: [bmiScore, bpScore, hrScore, sugarScore, visionScore]
+          },
+          {
+            name: '健康评分',
+            type: 'line',
+            smooth: true,
+            lineStyle: {
+              width: 0
+            },
+            itemStyle: {
+              opacity: 0
+            },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                {
+                  offset: 0,
+                  color: 'rgba(66, 185, 131, 0.3)'
+                },
+                {
+                  offset: 1,
+                  color: 'rgba(66, 185, 131, 0.1)'
+                }
+              ])
+            },
+            data: [bmiScore, bpScore, hrScore, sugarScore, visionScore]
+          }
+        ]
+      };
+      
+      myChart.setOption(option);
+    },
+    
+    // 计算各指标评分
+    calculateMetricScore(metric, value) {
+      if (!value) return 75; // 默认评分
+      
+      let score = 0;
+      switch(metric) {
+        case 'bmi':
+          // BMI: 18.5-24.9为最佳
+          if (value >= 18.5 && value <= 24.9) score = 100;
+          else if (value >= 17 && value < 18.5) score = 80;
+          else if (value > 24.9 && value <= 27) score = 80;
+          else if (value >= 15 && value < 17) score = 60;
+          else if (value > 27 && value <= 30) score = 60;
+          else score = 40;
+          break;
+        case 'bloodPressure':
+          // 血压: 90-140为正常
+          if (value >= 90 && value <= 140) score = 100;
+          else if (value >= 80 && value < 90) score = 80;
+          else if (value > 140 && value <= 160) score = 70;
+          else if (value < 80) score = 60;
+          else if (value > 160) score = 40;
+          break;
+        case 'heartRate':
+          // 心率: 60-100为正常
+          if (value >= 60 && value <= 100) score = 100;
+          else if (value >= 50 && value < 60) score = 80;
+          else if (value > 100 && value <= 120) score = 70;
+          else if (value < 50) score = 60;
+          else if (value > 120) score = 40;
+          break;
+        case 'bloodSugar':
+          // 血糖: 3.9-6.1为正常
+          if (value >= 3.9 && value <= 6.1) score = 100;
+          else if (value >= 3.5 && value < 3.9) score = 80;
+          else if (value > 6.1 && value <= 7) score = 70;
+          else if (value < 3.5) score = 50;
+          else if (value > 7) score = 40;
+          break;
+        case 'vision':
+          // 视力: 1.0及以上为正常
+          if (value >= 1.0) score = 100;
+          else if (value >= 0.8 && value < 1.0) score = 90;
+          else if (value >= 0.6 && value < 0.8) score = 80;
+          else if (value >= 0.4 && value < 0.6) score = 70;
+          else score = 60;
+          break;
+        default:
+          score = 75;
+      }
+      
+      return score;
+    },
+    
+    // 健康趋势融合折线图
+    renderTrendChart() {
+      const chartDom = document.getElementById("trend-chart");
+      const myChart = echarts.init(chartDom);
+      const option = {
+        backgroundColor: '#fff',
+        title: { 
+          text: '健康趋势融合图', 
+          left: 'center', 
+          textStyle: { 
+            color: this.themeColors.secondary, 
+            fontSize: 16,
+            fontWeight: 'normal' 
+          } 
+        },
+        tooltip: { 
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        legend: { 
+          data: ['血压', '血糖', '心率'], 
+          top: 30, 
+          textStyle: { color: '#2c3e50' } 
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true,
+          top: 60
+        },
+        xAxis: { 
+          type: 'category', 
+          data: this.date, 
+          axisLabel: { 
+            color: '#5e6d82',
+            rotate: 30,
+            fontSize: 10
+          },
+          axisTick: { alignWithLabel: true }
+        },
+        yAxis: { 
+          type: 'value', 
+          axisLabel: { color: '#5e6d82' },
+          splitLine: {
+            lineStyle: {
+              type: 'dashed',
+              color: '#eee'
+            }
+          }
+        },
+        series: [
+          { 
+            name: '血压', 
+            data: this.bloodPressure, 
+            type: 'line', 
+            smooth: true, 
+            lineStyle: { width: 3, color: this.themeColors.primary }, 
+            areaStyle: { 
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: `rgba(66, 185, 131, 0.3)` },
+                { offset: 1, color: `rgba(66, 185, 131, 0.05)` }
+              ])
+            }, 
+            symbol: 'emptyCircle', 
+            symbolSize: 6 
+          },
+          { 
+            name: '血糖', 
+            data: this.bloodSugar, 
+            type: 'line', 
+            smooth: true, 
+            lineStyle: { width: 3, color: this.themeColors.info }, 
+            areaStyle: { 
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: `rgba(0, 188, 212, 0.3)` },
+                { offset: 1, color: `rgba(0, 188, 212, 0.05)` }
+              ])
+            }, 
+            symbol: 'emptyCircle', 
+            symbolSize: 6 
+          },
+          { 
+            name: '心率', 
+            data: this.heartRate, 
+            type: 'line', 
+            smooth: true, 
+            lineStyle: { width: 3, color: this.themeColors.warning }, 
+            areaStyle: { 
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: `rgba(255, 152, 0, 0.3)` },
+                { offset: 1, color: `rgba(255, 152, 0, 0.05)` }
+              ])
+            }, 
+            symbol: 'emptyCircle', 
+            symbolSize: 6 
+          }
+        ]
+      };
       myChart.setOption(option);
     },
   },
-
   watch: {
     bodyInfo: {
-      deep: true, //监听对象内部属性的变化
+      deep: true,
       async handler() {
-        this.bmiM(); // 计算BMI值
-        await this.getBodyNotes(); // 获取身体数据信息
-        this.BarChart();
-        this.area();
-        const chartDom = this.$refs.myChart;
-        const myChart = echarts.init(chartDom);
-
-        const option = {
-          title: {
-            text: "心率变化趋势图",
-            textStyle: {
-              fontWeight: "normal",
-              fontSize: 25,
-              color: "#666",
-            },
-            left: "center",
-            top: 20,
-          },
-          xAxis: {
-            type: "category",
-            data: this.date,
-            axisLabel: {
-              fontSize: 12,
-              interval: 2,
-            },
-            axisTick: {
-              show: false,
-            },
-          },
-          yAxis: {
-            type: "value",
-            axisLine: {
-              show: false,
-            },
-            splitLine: {
-              lineStyle: {
-                type: "dashed",
-                color: "#ddd",
-              },
-            },
-            axisTick: {
-              show: false,
-            },
-          },
-          tooltip: {
-            trigger: "axis",
-            formatter: function (params) {
-              return params[0].name + "：" + params[0].value;
-            },
-          },
-          series: [
-            {
-              data: this.heartRate,
-              type: "line",
-              smooth: true,
-              lineStyle: {
-                width: 3,
-                color: "#00bfff",
-              },
-              symbol: "circle",
-              symbolSize: 8,
-              itemStyle: {
-                color: "#00bfff",
-                borderColor: "#fff",
-                borderWidth: 2,
-              },
-              markLine: {
-                data: [
-                  {
-                    type: "average",
-                    name: "平均值",
-                  },
-                ],
-                label: {
-                  position: "insideEndBottom",
-                  formatter: "{b}：{c}",
-                },
-                lineStyle: {
-                  type: "dashed",
-                  color: "green",
-                  width: 2,
-                },
-                symbol: "none",
-              },
-              animation: true,
-              animationDuration: 3000,
-              animationEasing: "cubicInOut",
-            },
-          ],
-        };
-
-        myChart.setOption(option);
+        this.bmiM();
+        await this.getBodyNotes();
+        this.calcHealthIndex();
+        this.renderHealthIndexWater();
+        this.renderHeightWeightGauge();
+        this.renderVitalsChart();
+        this.renderHealthScoreChart();
+        this.renderTrendChart();
       },
     },
   },
-
   created() {
     this.getBodyInfo();
   },
-
-  async mounted() {},
 };
 </script>
+
 <style scoped>
 .dashboard-container {
   padding: 24px;
-  background-color: #f5f7fa;
   min-height: 100vh;
+  background-color: #f5f7fa;
 }
-
 .dashboard-title {
   font-size: 28px;
   font-weight: 600;
   color: #2c3e50;
   margin-bottom: 24px;
   text-align: center;
+  letter-spacing: 1px;
 }
-
-.stats-cards {
-  margin-bottom: 36px;
-}
-
-.stat-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  height: 140px;
+/* 顶部区域 - 健康指数和身体数据 */
+.top-section {
   display: flex;
-  align-items: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s, box-shadow 0.3s;
-  margin-bottom: 20px;
-  overflow: hidden;
-  position: relative;
+  margin-bottom: 24px;
+  gap: 24px;
 }
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  width: 80px;
-  height: 80px;
+.health-index-container {
+  flex: 0 0 280px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: 16px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  transition: transform 0.3s, box-shadow 0.3s;
 }
-
-.stat-icon i {
-  font-size: 48px;
-  color: #409EFF;
-  opacity: 0.8;
+.health-index-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
-
-.stat-content {
-  flex: 1;
+.health-index-water {
+  width: 200px;
+  height: 200px;
 }
-
-.stat-label {
+.health-index-label {
   font-size: 18px;
+  color: #5e6d82;
   font-weight: 600;
-  color: #606266;
-  margin-bottom: 8px;
+  margin-top: 8px;
 }
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #303133;
-  line-height: 1.2;
+/* 身体数据可视化区域 */
+.body-metrics-container {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
 }
-
-.unit {
-  font-size: 16px;
-  font-weight: normal;
-  margin-left: 4px;
-  color: #909399;
+.metrics-chart {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  transition: transform 0.3s, box-shadow 0.3s;
 }
-
+.metrics-chart-narrow {
+  flex: 2;
+}
+.metrics-chart-wide {
+  flex: 3;
+}
+.metrics-chart:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
 .charts-container {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  margin-top: 20px;
 }
-
 .chart-wrapper {
-  flex: 1 1 calc(33.333% - 20px);
+  flex: 1 1 calc(50% - 20px);
   min-width: 300px;
-  background: #ffffff;
+  background: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
-
+.chart-wrapper:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
 .chart-box {
   width: 100%;
-  height: 400px;
+  height: 360px;
   padding: 16px;
 }
-
-/* Responsive adjustments */
+/* 响应式调整 */
 @media (max-width: 1200px) {
-  .chart-wrapper {
-    flex: 1 1 calc(50% - 20px);
-  }
-}
-
-@media (max-width: 768px) {
   .chart-wrapper {
     flex: 1 1 100%;
   }
-  
-  .stat-card {
-    height: auto;
-    padding: 16px;
+}
+@media (max-width: 768px) {
+  .top-section {
+    flex-direction: column;
   }
-  
-  .stat-icon {
-    width: 60px;
-    height: 60px;
+  .health-index-container {
+    flex: 0 0 auto;
+    width: 100%;
   }
-  
-  .stat-icon i {
-    font-size: 36px;
+  .body-metrics-container {
+    flex-direction: column;
   }
-  
-  .stat-value {
-    font-size: 24px;
+  .metrics-chart-narrow,
+  .metrics-chart-wide {
+    height: 240px;
+  }
+  .chart-wrapper {
+    flex: 1 1 100%;
   }
 }
 </style>
