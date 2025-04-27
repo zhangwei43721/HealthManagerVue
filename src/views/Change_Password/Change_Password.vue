@@ -1,7 +1,8 @@
 <template>
   <div class="password-page">
     <div class="register-form">
-      <h1>修改密码</h1>
+      <h1>修改资料</h1>
+
       <el-form
         :model="form"
         ref="form"
@@ -9,50 +10,64 @@
         label-width="80px"
         class="form"
       >
-      <el-form-item label="用户名" prop="username">
-        <el-input v-model="form.username" placeholder="请输入用户名"></el-input>
-      </el-form-item>
-      <el-form-item label="当前密码" prop="password">
-        <el-input
-          v-model="form.password"
-          type="password"
-          placeholder="请输入当前密码"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="新的密码" prop="newPassword">
-        <el-input
-          v-model="form.newPassword"
-          type="password"
-          placeholder="请输入新的密码"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="确认密码" prop="confirmNewPassword">
-        <el-input
-          v-model="form.confirmNewPassword"
-          type="password"
-          placeholder="请再次输入新的密码"
-        ></el-input>
-      </el-form-item>
-      <div class="form-actions">
-          <el-button type="primary" plain icon="el-icon-back" class="back-btn" @click="$router.push('/dashboard')">返回</el-button>
-          <el-button type="primary" class="submit-btn" @click="submitForm">提交</el-button>
+        <el-form-item label="头像" prop="avatar">
+          <el-upload
+            class="avatar-uploader"
+            action="" 
+            :http-request="customUpload"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload">
+            <img v-if="imageUrl" :src="imageUrl" class="avatar">
+            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+          </el-upload>
+        </el-form-item>
+
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="请输入用户名"></el-input>
+        </el-form-item>
+        <el-form-item label="当前密码" prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="请输入当前密码"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="新的密码" prop="newPassword">
+          <el-input
+            v-model="form.newPassword"
+            type="password"
+            placeholder="请输入新的密码 (留空则不修改)" 
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmNewPassword">
+          <el-input
+            v-model="form.confirmNewPassword"
+            type="password"
+            placeholder="请再次输入新的密码 (留空则不修改)"
+          ></el-input>
+        </el-form-item>
+        <div class="form-actions">
+            <el-button type="primary" plain icon="el-icon-back" class="back-btn" @click="$router.push('/dashboard')">返回</el-button>
+            <el-button type="primary" class="submit-btn" @click="submitForm">提交</el-button>
         </div>
-          </el-form>
+      </el-form>
     </div>
   </div>
 </template>
 <script>
 import userApi from "@/api/userManage";
+import request from '@/utils/request';
 
 export default {
   data() {
     return {
+      imageUrl: '',
       form: {
         username: "",
         password: "",
         newPassword: "",
         confirmNewPassword: "",
-        id: null,
       },
       rules: {
         username: [
@@ -63,11 +78,9 @@ export default {
           { min: 6, message: "密码长度不能少于6位", trigger: "blur" },
         ],
         newPassword: [
-          { required: true, message: "请输入新的密码", trigger: "blur" },
           { min: 6, message: "密码长度不能少于6位", trigger: "blur" },
         ],
         confirmNewPassword: [
-          { required: true, message: "确认密码", trigger: "blur" },
           { validator: this.validateConfirmNewPassword, trigger: "blur" },
         ],
       },
@@ -77,67 +90,105 @@ export default {
     submitForm() {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          // 构造请求体
+          if (this.form.newPassword && !this.form.confirmNewPassword) {
+            this.$message.error('请确认新的密码');
+            return;
+          }
+          if (this.form.newPassword !== this.form.confirmNewPassword) {
+             this.$message.error('两次输入的新密码不一致');
+             return;
+          }
+
           const requestBody = {
-            id: this.id,
             username: this.form.username,
             password: this.form.password,
-            newPassword: this.form.newPassword,
+            newPassword: this.form.newPassword || null,
           };
-          //提交验证给后台
+
+          Object.keys(requestBody).forEach(key => {
+             if (requestBody[key] === null || requestBody[key] === undefined) {
+                delete requestBody[key];
+             }
+           });
+
           userApi
             .changePassword(requestBody)
             .then((response) => {
-              //成功提示
               this.$message({
-                message: response.message,
+                message: response.message || '密码修改成功',
                 type: "success",
               });
-              this.$router.replace('/login');
             })
-            
             .catch((error) => {
-              //错误提示
+              const message = error.response?.data?.message || error.message || '密码修改失败';
               this.$message({
-                message: error.response.data.message,
+                message: message,
                 type: "error",
               });
             });
         } else {
-          //表单校验不通过
+          console.log('表单校验不通过');
           return false;
         }
       });
     },
     validateConfirmNewPassword(rule, value, callback) {
-      if (value !== this.form.newPassword) {
+      if (this.form.newPassword && value !== this.form.newPassword) {
         callback(new Error("两次输入的密码不一致"));
       } else {
         callback();
       }
     },
-
-     getUserId() {
-      userApi
-        .getUserId()
-        .then((response) => {
-          console.log(response)
-          // 成功获取用户ID
-          this.id = response.data.userId;
-          // 其他逻辑
-        })
-        .catch((error) => {
-          // 处理错误情况
-        });
+    customUpload(options) {
+      const formData = new FormData();
+      formData.append('file', options.file);
+      
+      request({
+        url: 'http://localhost:9401/file/user/avatar/upload',
+        method: 'post',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }).then(response => {
+        console.log("上传头像响应:", response);
+        this.handleAvatarSuccess(response.data, options.file);
+      }).catch(error => {
+        console.error('上传头像失败:', error);
+        const errorMessage = error.response?.data?.message || error.message || '上传失败';
+        this.$message.error('上传失败: ' + errorMessage);
+      });
     },
+    handleAvatarSuccess(res, file) {
+      console.log('头像上传成功，响应数据:', res);
+      let url = null;
+      if (res && res.data && res.data.url) {
+        url = res.data.url;
+      } else if (res && res.url) {
+        url = res.url;
+      }
+      
+      if (url) {
+        this.imageUrl = url;
+        this.$message.success('头像上传成功');
+      } else {
+        console.error('后端返回数据中没有找到头像 URL:', res);
+        this.$message.warning('头像已上传，但获取图片地址失败');
+      }
+    },
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isLt2M = file.size / 1024 / 1024 < 2;
 
-
-    
+      if (!isJPG) {
+        this.$message.error('上传头像图片只能是 JPG/PNG 格式!');
+      }
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!');
+      }
+      return isJPG && isLt2M;
+    }
   },
-
-  created(){
-    this.getUserId();
-  }
 };
 </script> 
   <style scoped>
@@ -186,7 +237,6 @@ export default {
   background: linear-gradient(90deg, #357ae8 0%, #4f8cff 100%);
 }
 
-
 .back-btn {
   font-size: 16px;
   border-radius: 25px;
@@ -233,7 +283,37 @@ export default {
   border-radius: 8px;
 }
 
-
+.avatar-uploader {
+  margin-bottom: 20px;
+  display: inline-block;
+}
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+  text-align: center;
+}
+.avatar-uploader .el-upload:hover {
+  border-color: #409EFF;
+}
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+  text-align: center;
+}
+.avatar {
+  width: 100px;
+  height: 100px;
+  display: block;
+}
 
 @media (max-width: 600px) {
   .register-form {

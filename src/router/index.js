@@ -53,6 +53,13 @@ export const constantRoutes = [
     hidden: true,
     meta: { requiresAuth: false }
   },
+  {
+    path: '/change-avatar',
+    name: 'ChangeAvatar',
+    component: () => import('@/views/Change_Avatar/Change_Avatar'),
+    hidden: true,
+    meta: { requiresAuth: false }
+  },
 ];
 
 const createRouter = () => new Router({
