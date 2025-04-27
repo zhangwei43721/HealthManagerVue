@@ -9,6 +9,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 导航文字默认白色，滚动或展开时变黑 */
+        .glass-nav .nav-link,
+        .glass-nav .navbar-brand .logo-text,
+        .glass-nav .navbar-brand .logo-icon {
+            color: #fff;
+            transition: color .3s, filter .3s;
+        }
+        .glass-nav.scrolled .nav-link,
+        .glass-nav.scrolled .navbar-brand .logo-icon {
+            color: #000;
+        }
+        /* 初始状态让渐变 logo 文本更亮 */
+        .glass-nav .logo-text {
+            filter: brightness(2.5);
+        }
+        /* 滚动后恢复正常亮度 */
+        .glass-nav.scrolled .logo-text {
+            filter: brightness(1);
+        }
+    </style>
 </head>
 <body>
     <!-- 导航栏 -->
@@ -453,6 +474,17 @@
                 window.location.href = '/#/login';
             });
         });
+        // 导航文字随背景切换
+        (function(){
+            const nav = document.querySelector('.glass-nav');
+            const items = nav.querySelectorAll('.nav-link, .navbar-brand .logo-text, .navbar-brand .logo-icon');
+            const collapse = document.getElementById('navbarNav');
+            function update(){ items.forEach(el=> el.style.color = nav.classList.contains('scrolled') ? '#000' : '#fff'); }
+            window.addEventListener('scroll', ()=>{ nav.classList.toggle('scrolled', window.scrollY>50); update(); });
+            collapse.addEventListener('shown.bs.collapse', ()=>{ nav.classList.add('scrolled'); update(); });
+            collapse.addEventListener('hidden.bs.collapse', ()=>{ if(window.scrollY<=50) nav.classList.remove('scrolled'); update(); });
+            update();
+        })();
     </script>
 </body>
 </html>
