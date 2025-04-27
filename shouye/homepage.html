@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI健康管理平台</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg fixed-top glass-nav">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <i class="fas fa-heartbeat logo-icon"></i>
+                    <span class="logo-text">AI健康管理</span>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link neon-hover" href="#">首页</a></li>
+                    <li class="nav-item"><a class="nav-link neon-hover" href="#">AI问答</a></li>
+                    <li class="nav-item"><a class="nav-link neon-hover" href="#">健康报告</a></li>
+                    <li class="nav-item"><a class="nav-link neon-hover" href="#">饮食分析</a></li>
+                    <li class="nav-item"><a class="nav-link neon-hover" href="#">知识库</a></li>
+                </ul>
+                <div class="ms-3">
+                    <button class="btn btn-primary gradient-btn">登录</button>
+                    <button class="btn btn-outline-primary ms-2">注册</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <section class="hero-section">
+        <div id="particles-js"></div>
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="hero-title">AI驱动的<br>个性化健康管理</h1>
+                    <p class="hero-subtitle">基于DeepSeek V3与Yolov10，为您提供全方位的健康解决方案</p>
+                    <div class="hero-cta">
+                        <button class="btn btn-lg btn-primary pulse-btn">开始体验</button>
+                        <button class="btn btn-lg btn-outline-light ms-3">了解更多</button>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="model-container">
+                        <div id="3d-model"></div>
+                        <div class="floating-card" data-offset="30">
+                            <div class="card-icon"><i class="fas fa-heartbeat"></i></div>
+                            <div class="card-data">心率: 72 BPM</div>
+                        </div>
+                        <div class="floating-card" data-offset="20">
+                            <div class="card-icon"><i class="fas fa-walking"></i></div>
+                            <div class="card-data">今日步数: 8,732</div>
+                        </div>
+                        <div class="floating-card" data-offset="15">
+                            <div class="card-icon"><i class="fas fa-weight"></i></div>
+                            <div class="card-data">BMI: 22.3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI功能展示区 -->
+    <section class="features-section">
+        <div class="container">
+            <h2 class="section-title text-center">核心AI服务能力</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="flip-card">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <div class="icon-container">
+                                    <i class="fas fa-comments-alt"></i>
+                                </div>
+                                <h3>实时健康问答</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>利用DeepSeek V3接口提供高度个性化、响应迅速的AI健康问答服务</p>
+                                <a href="#" class="btn btn-light btn-sm">立即体验</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="flip-card">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <div class="icon-container">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h3>历史数据分析</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>通过DeepSeek R1接口，对用户历史健康信息进行专业的深度分析</p>
+                                <a href="#" class="btn btn-light btn-sm">查看示例</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="flip-card">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front">
+                                <div class="icon-container">
+                                    <i class="fas fa-file-medical-alt"></i>
+                                </div>
+                                <h3>个性化健康报告</h3>
+                            </div>
+                            <div class="flip-card-back">
+                                <p>整合各种生命体征数据，生成专属健康报告，为健康生活提供指导</p>
+                                <a href="#" class="btn btn-light btn-sm">生成报告</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 饮食管理特色模块 -->
+    <section class="food-section">
+        <div class="container">
+            <h2 class="section-title text-center">AI饮食管理</h2>
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="demo-container">
+                        <div class="demo-steps">
+                            <div class="demo-step active">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h4>拍照上传</h4>
+                                    <p>随手拍下您的餐食</p>
+                                </div>
+                            </div>
+                            <div class="demo-step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h4>AI识别</h4>
+                                    <p>Yolov10模型智能识别</p>
+                                </div>
+                            </div>
+                            <div class="demo-step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h4>营养分析</h4>
+                                    <p>提供详细营养信息</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="demo-preview">
+                            <div class="upload-container">
+                                <div class="upload-ui">
+                                    <i class="fas fa-camera"></i>
+                                    <p>点击上传餐食照片</p>
+                                    <small>或拖拽图片到此处</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="nutrition-chart-container">
+                        <h3>营养分析示例</h3>
+                        <div class="canvas-container">
+                            <canvas id="nutritionChart"></canvas>
+                        </div>
+                        <div class="calorie-counter">
+                            <div class="counter-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="counter-content">
+                                <div class="counter-label">卡路里</div>
+                                <div class="counter-value">320 kcal</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 健康数据可视化区 -->
+    <section class="data-viz-section">
+        <div class="container">
+            <h2 class="section-title text-center">健康数据可视化</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="viz-card">
+                        <h3><i class="fas fa-wave-square"></i> 生命体征监测</h3>
+                        <div class="canvas-container">
+                            <canvas id="vitalsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="viz-card">
+                        <h3><i class="fas fa-tachometer-alt"></i> 健康评分</h3>
+                        <div class="health-score">
+                            <div class="score-gauge">
+                                <div class="gauge-fill" style="--percent: 85%;"></div>
+                                <div class="gauge-center">
+                                    <div class="gauge-value">85</div>
+                                    <div class="gauge-label">优秀</div>
+                                </div>
+                            </div>
+                            <div class="score-details">
+                                <div class="score-item">
+                                    <div class="item-label">活动指数</div>
+                                    <div class="item-progress">
+                                        <div class="progress-bar" style="--fill: 82%"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="item-label">睡眠质量</div>
+                                    <div class="item-progress">
+                                        <div class="progress-bar" style="--fill: 76%"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="item-label">营养状况</div>
+                                    <div class="item-progress">
+                                        <div class="progress-bar" style="--fill: 90%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 知识库快速入口 -->
+    <section class="knowledge-section">
+        <div class="container">
+            <h2 class="section-title text-center">健康知识库</h2>
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="搜索健康知识...">
+                    <i class="fas fa-microphone"></i>
+                </div>
+            </div>
+            <div class="honeycomb-container">
+                <div class="honeycomb">
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-heart"></i>
+                            <h4>心脏健康</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>学习如何保持心脏健康和预防心血管疾病</p>
+                        </div>
+                    </div>
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-brain"></i>
+                            <h4>心理健康</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>探索心理健康管理与压力缓解技巧</p>
+                        </div>
+                    </div>
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-dumbbell"></i>
+                            <h4>健身锻炼</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>获取适合您身体状况的科学健身方案</p>
+                        </div>
+                    </div>
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-utensils"></i>
+                            <h4>健康饮食</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>了解营养均衡饮食与食材搭配知识</p>
+                        </div>
+                    </div>
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-bed"></i>
+                            <h4>睡眠改善</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>提升睡眠质量与睡眠周期管理方法</p>
+                        </div>
+                    </div>
+                    <div class="honeycomb-cell">
+                        <div class="honeycomb-content">
+                            <i class="fas fa-stethoscope"></i>
+                            <h4>疾病预防</h4>
+                        </div>
+                        <div class="honeycomb-hover">
+                            <p>常见疾病预防措施与早期症状识别</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 用户反馈区 -->
+    <section class="testimonial-section">
+        <div class="container">
+            <h2 class="section-title text-center">用户反馈</h2>
+            <div class="testimonial-carousel">
+                <div class="carousel-container">
+                    <div class="testimonial-card active">
+                        <div class="user-avatar">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="用户头像">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <p class="quote">"使用AI健康管理平台三个月后，我的体重下降了5公斤，血压也恢复正常。个性化的饮食建议特别有用！"</p>
+                            <div class="user-info">
+                                <div class="user-name">张女士</div>
+                                <div class="user-meta">34岁，办公室职员</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="user-avatar">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="用户头像">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <p class="quote">"作为一名马拉松爱好者，这个平台帮助我科学安排训练计划和饮食，我的成绩提高了15%！"</p>
+                            <div class="user-info">
+                                <div class="user-name">李先生</div>
+                                <div class="user-meta">28岁，运动爱好者</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="user-avatar">
+                            <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="用户头像">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <p class="quote">"AI健康顾问功能太棒了，我可以随时咨询健康问题并得到专业回答，解决了我许多健康困惑。"</p>
+                            <div class="user-info">
+                                <div class="user-name">王女士</div>
+                                <div class="user-meta">45岁，教师</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-indicators">
+                    <span class="indicator active"></span>
+                    <span class="indicator"></span>
+                    <span class="indicator"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部联系区 -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-about">
+                        <div class="footer-logo">
+                            <i class="fas fa-heartbeat logo-icon"></i>
+                            <span class="logo-text">AI健康管理</span>
+                        </div>
+                        <p>基于先进AI技术提供全面、个性化的健康管理服务方案</p>
+                        <div class="social-links">
+                            <a href="#"><i class="fab fa-weixin"></i></a>
+                            <a href="#"><i class="fab fa-weibo"></i></a>
+                            <a href="#"><i class="fab fa-qq"></i></a>
+                            <a href="#"><i class="fab fa-tiktok"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-links">
+                        <h3>快速链接</h3>
+                        <ul>
+                            <li><a href="#">关于我们</a></li>
+                            <li><a href="#">服务条款</a></li>
+                            <li><a href="#">隐私政策</a></li>
+                            <li><a href="#">帮助中心</a></li>
+                            <li><a href="#">联系我们</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <div class="footer-newsletter">
+                        <h3>订阅健康资讯</h3>
+                        <p>定期获取健康管理知识和平台更新信息</p>
+                        <div class="newsletter-form">
+                            <input type="email" placeholder="输入您的邮箱">
+                            <button type="submit">订阅</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="copyright">
+                    &copy; 2023 AI健康管理平台 All Rights Reserved
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript 文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html> 
