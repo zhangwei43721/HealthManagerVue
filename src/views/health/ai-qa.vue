@@ -78,26 +78,54 @@
       
       <!-- 输入区域 -->
       <div class="ai-chat-input">
-        <el-input
-          class="message-input"
-          type="textarea"
-          v-model="input"
-          :rows="1"
-          autosize
-          :maxlength="500"
-          placeholder="请输入您的健康问题..."
-          :disabled="loading"
-        >
-          <template slot="append">
+        <div class="input-container">
+          <el-input
+            class="message-input"
+            type="textarea"
+            v-model="input"
+            :rows="1"
+            autosize
+            :maxlength="500"
+            placeholder="请输入您的健康问题..."
+            :disabled="loading"
+          />
+          
+          <!-- 按钮区域 -->
+          <div class="action-buttons">
+            <!-- 拍照按钮 -->
+            <el-tooltip content="上传图片" placement="top">
+              <el-button 
+                type="primary"
+                icon="el-icon-camera"
+                circle
+                :disabled="loading"
+                @click="handlePhotoUpload"
+                class="action-btn photo-btn"
+              />
+            </el-tooltip>
+            
+            <!-- 发送按钮 -->
             <el-button 
+              type="primary"
+              icon="el-icon-s-promotion"
+              circle
               :loading="loading" 
               :disabled="!input.trim()"
               @click="sendMsg"
-            >
-              发送
-            </el-button>
-          </template>
-        </el-input>
+              class="action-btn send-btn"
+            />
+          </div>
+          
+          <!-- 隐藏的文件上传输入 -->
+          <input
+            type="file"
+            ref="photoInput"
+            accept="image/*"
+            style="display: none"
+            @change="onPhotoSelected"
+          />
+        </div>
+        
         <div class="input-tips" v-if="input.length > 0">
           按Enter发送，Shift+Enter换行
         </div>
@@ -131,7 +159,10 @@ export default {
       apiBaseUrl: process.env.VUE_APP_BASE_API, // 从 .env 文件读取后端地址
       typingTimer: null,
       conversationId: null, // 当前对话ID
-      pageSuggestion: null // 当前页面的预生成建议
+      pageSuggestion: null, // 当前页面的预生成建议
+      userId: null,
+      photoFile: null,
+      photoUploading: false
     };
   },
   
@@ -222,6 +253,97 @@ export default {
     },
     
     /**
+     * 处理拍照上传
+     */
+    handlePhotoUpload() {
+      // 触发隐藏的文件输入点击
+      this.$refs.photoInput.click();
+    },
+    
+    /**
+     * 处理照片选择
+     */
+    onPhotoSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // 验证文件类型
+      if (!file.type.startsWith('image/')) {
+        this.$message.error('请选择图片文件');
+        return;
+      }
+      
+      // 验证文件大小（限制为5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        this.$message.error('图片大小不能超过5MB');
+        return;
+      }
+      
+      this.photoFile = file;
+      this.uploadPhoto();
+    },
+    
+    /**
+     * 上传照片到后端
+     */
+    uploadPhoto() {
+      if (!this.photoFile) return;
+      
+      this.photoUploading = true;
+      
+      // 创建FormData
+      const formData = new FormData();
+      formData.append('photo', this.photoFile);
+      formData.append('userId', this.userId);
+      
+      // TODO: 调用后端拍照上传API
+      // 这里预留了接口调用结构，实际实现时可以替换为真实API调用
+      /*
+      // 实际API调用示例
+      this.$axios.post(this.apiBaseUrl + '/ai/upload-photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Token': this.$store.getters.token
+        }
+      }).then(response => {
+        // 处理成功响应
+      }).catch(error => {
+        // 处理错误
+      }).finally(() => {
+        this.photoUploading = false;
+      });
+      */
+      
+      // 模拟上传成功
+      setTimeout(() => {
+        this.photoUploading = false;
+        
+        // 添加用户消息，显示上传的图片
+        const imageUrl = URL.createObjectURL(this.photoFile);
+        this.messages.push({
+          role: 'user',
+          content: `<div class="uploaded-image"><img src="${imageUrl}" alt="用户上传图片" /></div>`,
+          time: this.getCurrentTime()
+        });
+        
+        // 清空文件输入
+        this.$refs.photoInput.value = '';
+        this.photoFile = null;
+        
+        // 滚动到底部
+        this.scrollToBottom();
+        
+        // 发送给AI处理
+        this.addAIMessage('正在分析您上传的图片...');
+        
+        // 模拟 AI 响应
+        setTimeout(() => {
+          this.addAIMessage('根据您上传的图片，我可以看到这是一张健康相关的图片。如果您有任何关于这张图片的健康问题，请随时询问我。');
+        }, 2000);
+      }, 1500);
+    },
+    
+    /**
      * 使用示例问题
      */
     useExample(question) {
@@ -238,7 +360,24 @@ export default {
     },
     
     formatMessage(content) {
-      return content ? parseMarkdown(content) : '';
+      return parseMarkdown(content);
+    },
+    
+    /**
+     * 添加AI消息
+     */
+    addAIMessage(content) {
+      const time = this.getCurrentTime();
+      this.messages.push({
+        role: 'ai',
+        content: content,
+        time: time
+      });
+      
+      // 滚动到底部
+      this.$nextTick(() => {
+        this.scrollToBottom();
+      });
     },
     
     /**

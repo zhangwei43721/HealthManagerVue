@@ -283,11 +283,19 @@ $transition: all 0.3s ease;
   background-color: white;
   position: relative;
   
+  .input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  
   .message-input {
+    flex: 1;
+    
     .el-textarea__inner {
       border-radius: 20px;
-      padding-right: 100px;
       resize: none;
+      padding-right: 15px;
       transition: $transition;
       min-height: 44px !important;
       
@@ -296,23 +304,32 @@ $transition: all 0.3s ease;
         box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
       }
     }
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  
+  .action-btn {
+    transition: all 0.3s ease;
     
-    .el-input-group__append {
-      background-color: $primary-color;
-      border-color: $primary-color;
-      color: white;
-      border-top-right-radius: 20px;
-      border-bottom-right-radius: 20px;
-      padding: 0 16px;
-      
-      .el-button {
-        color: white;
-        border: none;
-        background: transparent;
-        padding: 0;
-        font-weight: 500;
-      }
+    &:hover {
+      transform: scale(1.05);
     }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+  
+  .photo-btn {
+    background-color: #409EFF;
+  }
+  
+  .send-btn {
+    background-color: $primary-color;
   }
   
   .input-tips {
@@ -322,6 +339,18 @@ $transition: all 0.3s ease;
     font-size: 12px;
     color: $light-text;
     pointer-events: none;
+  }
+}
+
+/* 上传图片样式 */
+.uploaded-image {
+  max-width: 250px;
+  margin: 5px 0;
+  
+  img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #eee;
   }
 }
 
