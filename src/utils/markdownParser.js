@@ -1,5 +1,5 @@
-// Markdown parser utility
-// Extracted from ai-qa.vue for reuse
+// markdownParser.js
+// 用于解析 Markdown 格式文本的通用工具
 
 /**
  * Escape HTML to prevent XSS
