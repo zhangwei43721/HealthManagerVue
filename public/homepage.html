@@ -46,7 +46,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-6">
                     <h1 class="hero-title">AI驱动的<br>个性化健康管理</h1>
-                    <p class="hero-subtitle">基于DeepSeek V3与Yolov10，为您提供全方位的健康解决方案</p>
+                    <p class="hero-subtitle">基于DeepSeek R1与Yolov10，为您提供全方位的健康解决方案</p>
                     <div class="hero-cta">
                         <button class="btn btn-lg btn-primary pulse-btn">开始体验</button>
                         <button class="btn btn-lg btn-outline-light ms-3">了解更多</button>
@@ -442,5 +442,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script src="main.js"></script>
+    <script>
+        // 除注册按钮外，所有按钮和链接点击跳转到登录页
+        document.querySelectorAll('a, button').forEach(el => {
+            const href = el.getAttribute('href') || '';
+            const onclick = el.getAttribute('onclick') || '';
+            if (href.includes('/#/register') || onclick.includes('/#/register')) return;
+            el.addEventListener('click', e => {
+                e.preventDefault();
+                window.location.href = '/#/login';
+            });
+        });
+    </script>
 </body>
-</html> 
+</html>
