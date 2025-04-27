@@ -79,13 +79,10 @@ const actions = {
         }
 
         const { name, avatar, menuList, userId } = data
-        
-        // 过滤掉AI健康问答菜单项
-        const filteredMenuList = filterAiHealthMenu(menuList);
 
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
-        commit('SET_MENU_LIST', filteredMenuList)
+        commit('SET_MENU_LIST', menuList)
         commit('SET_USER_ID', userId)
 
         resolve(data)
@@ -211,31 +208,7 @@ const actions = {
   }
 }
 
-/**
- * 递归过滤掉AI健康问答菜单
- * @param {Array} menuList 原始菜单列表
- * @returns {Array} 过滤后的菜单列表
- */
-function filterAiHealthMenu(menuList) {
-  if (!menuList || !Array.isArray(menuList)) return [];
-  
-  return menuList.filter(menu => {
-    // 根据路径或名称过滤AI健康问答菜单项
-    const isAiHealthMenu = 
-      (menu.path && menu.path.includes('/health/ai-qa')) || 
-      (menu.name && menu.name.toLowerCase().includes('aihealth')) ||
-      (menu.component && menu.component.toLowerCase().includes('ai-qa'));
-    
-    // 如果当前菜单项不是AI健康问答，则保留，并递归处理其子菜单
-    if (!isAiHealthMenu) {
-      if (menu.children && menu.children.length > 0) {
-        menu.children = filterAiHealthMenu(menu.children);
-      }
-      return true;
-    }
-    return false;
-  });
-}
+// 已移除过滤AI健康问答菜单的函数
 
 export default {
   namespaced: true,

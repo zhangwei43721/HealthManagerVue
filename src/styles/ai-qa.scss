@@ -21,7 +21,7 @@ $transition: all 0.3s ease;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: 70vh;
+  min-height: calc(100vh - 84px); /* 减去顶部导航栏的高度 */
   padding: 20px;
   background-color: $background-color;
 }
@@ -29,8 +29,8 @@ $transition: all 0.3s ease;
 /* 聊天卡片 */
 .ai-chat-card {
   width: 90%;
-  max-width: 800px;
-  min-height: 600px;
+  max-width: 1000px;
+  min-height: calc(100vh - 124px); /* 减去顶部导航栏和页面内边距 */
   display: flex;
   flex-direction: column;
   border-radius: $border-radius;
@@ -103,7 +103,7 @@ $transition: all 0.3s ease;
   padding: 20px;
   background: white;
   min-height: 400px;
-  max-height: 500px;
+  max-height: calc(100vh - 300px); /* 动态调整高度 */
   scrollbar-width: thin;
   
   &::-webkit-scrollbar {
@@ -475,13 +475,13 @@ $transition: all 0.3s ease;
   .ai-chat-card {
     width: 100%;
     max-width: none;
-    min-height: calc(100vh - 40px);
+    min-height: calc(100vh - 124px);
     margin: 0;
     border-radius: 0;
   }
   
   .ai-chat-messages {
-    max-height: none;
+    max-height: calc(100vh - 300px);
   }
   
   .ai-msg .ai-msg-bubble {
@@ -493,37 +493,5 @@ $transition: all 0.3s ease;
     padding: 6px 12px;
   }
 }
-.ai-chat-popup {
-  position: fixed;
-  right: 32px;
-  bottom: 32px;
-  z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  border-radius: 18px;
-  width: 380px;
-  max-width: 90vw;
-  min-height: 520px;
-  transition: box-shadow 0.2s;
-}
-.ai-chat-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  background: transparent;
-  border: none;
-  font-size: 22px;
-  color: #888;
-  cursor: pointer;
-  z-index: 10001;
-}
-.ai-chat-close:hover {
-  color: #f56c6c;
-}
-.chat-fade-enter-active, .chat-fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
-}
-.chat-fade-enter, .chat-fade-leave-to {
-  opacity: 0;
-  transform: translateY(40px);
-}
+/* 全页面样式 - 移除了弹出式样式 */
 

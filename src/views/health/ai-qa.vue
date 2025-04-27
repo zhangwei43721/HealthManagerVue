@@ -1,8 +1,5 @@
 <template>
-  <transition name="chat-fade">
-    <div v-if="visible" class="ai-chat-container ai-chat-popup">
-      <!-- 关闭按钮 -->
-      <button class="ai-chat-close" @click="$emit('close')" title="关闭">×</button>
+  <div class="ai-chat-container">
       <el-card class="ai-chat-card" :body-style="{ padding: '0' }">
       <!-- 聊天头部 -->
       <div class="ai-chat-header">
@@ -107,7 +104,6 @@
       </div>
     </el-card>
   </div>
-  </transition>
 </template>
 
 <script>
@@ -116,10 +112,6 @@ import { escapeHtml, parseInline, parseMarkdown } from '@/utils/markdownParser';
 export default {
   name: 'AiHealthQA',
   props: {
-    visible: {
-      type: Boolean,
-      default: true
-    },
     pageName: {
       type: String,
       default: ''
@@ -176,13 +168,6 @@ export default {
           this.loadPageSuggestion(newPage);
         }
       }
-    },
-    
-    // 监听可见性，当变为可见时，如果有页面建议且未显示，则自动显示
-    visible(isVisible) {
-      if (isVisible && this.showPreGeneratedAdvice && this.pageName && !this.hasMessages) {
-        this.displayPageSuggestion();
-      }
     }
   },
   
@@ -197,15 +182,21 @@ export default {
   },
   
   mounted() {
-    // 添加键盘事件监听器，处理Shift+Enter
+    // 添加键盘事件监听
     document.addEventListener('keydown', this.handleKeyDown);
     
-    // 初始显示页面建议
-    if (this.visible && this.showPreGeneratedAdvice && this.pageName) {
-      this.$nextTick(() => {
-        this.displayPageSuggestion();
-      });
+    // 加载聊天历史
+    if (this.userId) {
+      this.loadChatHistoryFromServer();
     }
+    
+    // 如果有页面建议且未显示，则自动显示
+    if (this.showPreGeneratedAdvice && this.pageSuggestion && !this.hasMessages) {
+      this.displayPageSuggestion();
+    }
+    
+    // 滚动到底部
+    this.scrollToBottom();
   },
   
   beforeDestroy() {
