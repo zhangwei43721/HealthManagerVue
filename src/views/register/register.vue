@@ -77,7 +77,7 @@ export default {
               message: response.message,
               type: "success"
             });
-            this.$router.push('/login');
+            this.$router.push('/dashboard');
           });
         } else {
           return false;

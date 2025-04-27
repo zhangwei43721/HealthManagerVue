@@ -13,5 +13,13 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    <script>
+      // 判断当前路径是否为 /app，如果是则加载 Vue SPA，否则加载静态首页
+      if (window.location.pathname === '/app' || window.location.hash.startsWith('#/')) {
+        document.getElementById('app').style.display = 'block';
+      } else {
+        window.location.replace('/homepage.html');
+      }
+    </script>
   </body>
 </html>
