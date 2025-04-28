@@ -40,6 +40,32 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/admin',
+    component: Layout,
+    redirect: '/admin/dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        name: 'AdminDashboard',
+        component: () => import('@/views/dashboard/index'),
+        meta: { title: '管理员首页', icon: 'el-icon-house', affix: true }
+      }
+    ]
+  },
+  {
+    path: '/user',
+    component: Layout,
+    redirect: '/user/dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        name: 'UserDashboard',
+        component: () => import('@/views/dashboard/index'),
+        meta: { title: '用户首页', icon: 'el-icon-house', affix: true }
+      }
+    ]
+  },
+  {
     path: '/register',
     name: 'Register',
     component: () => import('@/views/register/register'),

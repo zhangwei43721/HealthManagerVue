@@ -10,6 +10,7 @@ const getDefaultState = () => {
     avatar: '',
     menuList: [],
     userId: '',
+    role: '',
     healthData: null,     // 用户健康数据
     healthModel: null,    // AI生成的健康模型
     healthSuggestions: {} // 针对不同页面的健康建议
@@ -36,6 +37,9 @@ const mutations = {
   },
   SET_USER_ID:(state, userId) => {
     state.userId = userId
+  },
+  SET_ROLE: (state, role) => {
+    state.role = role
   },
   SET_HEALTH_DATA:(state, healthData) => {
     state.healthData = healthData
@@ -78,12 +82,13 @@ const actions = {
           reject('Verification failed, please Login again.')
         }
 
-        const { name, avatar, menuList, userId } = data
+        const { name, avatar, menuList, userId, role } = data
 
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
         commit('SET_MENU_LIST', menuList)
         commit('SET_USER_ID', userId)
+        commit('SET_ROLE', role)
 
         resolve(data)
       }).catch(error => {

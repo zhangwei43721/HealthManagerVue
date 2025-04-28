@@ -87,8 +87,15 @@ export default {
           this.$store
             .dispatch("user/login", this.loginForm)
             .then(() => {
-              this.$router.push({ path: this.redirect || "/" });
-              this.loading = false;
+              this.$store.dispatch("user/getInfo").then((data) => {
+                const role = data.role;
+                if (role === 'admin') {
+                  this.$router.push({ path: '/admin/dashboard' });
+                } else {
+                  this.$router.push({ path: '/user/dashboard' });
+                }
+                this.loading = false;
+              });
             })
             .catch(() => {
               this.loading = false;
