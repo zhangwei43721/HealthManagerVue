@@ -1,7 +1,6 @@
 <template>
   <div class="ai-chat-container">
-      <el-card class="ai-chat-card" :body-style="{ padding: '0' }">
-      <!-- 聊天头部 -->
+    <el-card class="ai-chat-card" :body-style="{ padding: '0' }">
       <div class="ai-chat-header">
         <div class="ai-assistant-info">
           <el-avatar :size="40" icon="el-icon-s-custom" :style="{ background: '#42b983' }" />
@@ -13,20 +12,18 @@
           </div>
         </div>
         <el-tooltip content="清空对话历史" placement="top">
-          <el-button 
-            type="text" 
-            icon="el-icon-delete" 
-            class="clear-btn" 
+          <el-button
+            type="text"
+            icon="el-icon-delete"
+            class="clear-btn"
             :disabled="messages.length === 0 || loading"
             @click="clearMessages"
           />
         </el-tooltip>
       </div>
 
-      <!-- 聊天消息区域 -->
       <div class="ai-chat-messages" ref="msgBox">
         <transition-group name="message-fade">
-          <!-- 欢迎消息 -->
           <div v-if="messages.length === 0" key="welcome" class="welcome-container">
             <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f916.svg" class="robot-icon" alt="AI机器人" />
             <h3>您好！我是您的健康顾问</h3>
@@ -39,24 +36,23 @@
             </div>
           </div>
 
-          <!-- 消息列表 -->
-          <div 
-            v-for="(msg, idx) in messages" 
-            :key="'msg-'+idx" 
+          <div
+            v-for="(msg, idx) in messages"
+            :key="'msg-'+idx"
             :class="['ai-msg', msg.role]"
           >
-            <el-avatar 
-              v-if="msg.role === 'user'" 
-              icon="el-icon-user-solid" 
-              :size="36" 
+            <el-avatar
+              v-if="msg.role === 'user'"
+              icon="el-icon-user-solid"
+              :size="36"
               class="msg-avatar"
             />
-            <el-avatar 
-              v-else 
-              icon="el-icon-s-custom" 
-              :size="36" 
+            <el-avatar
+              v-else
+              icon="el-icon-s-custom"
+              :size="36"
               class="msg-avatar"
-              :style="{ background: '#42b983' }" 
+              :style="{ background: '#42b983' }"
             />
             <div class="ai-msg-bubble">
               <div class="ai-msg-content" v-html="formatMessage(msg.content)"></div>
@@ -64,8 +60,7 @@
             </div>
           </div>
         </transition-group>
-        
-        <!-- 打字指示器 -->
+
         <div class="typing-indicator" v-if="isTyping">
           <el-avatar :size="36" icon="el-icon-s-custom" :style="{ background: '#42b983' }" class="msg-avatar" />
           <div class="ai-msg-bubble typing">
@@ -75,8 +70,7 @@
           </div>
         </div>
       </div>
-      
-      <!-- 输入区域 -->
+
       <div class="ai-chat-input">
         <div class="input-container">
           <el-input
@@ -88,13 +82,12 @@
             :maxlength="500"
             placeholder="请输入您的健康问题..."
             :disabled="loading"
+            @keydown.enter.native="handleKeyDown"
           />
-          
-          <!-- 按钮区域 -->
+
           <div class="action-buttons">
-            <!-- 拍照按钮 -->
             <el-tooltip content="上传图片" placement="top">
-              <el-button 
+              <el-button
                 type="primary"
                 icon="el-icon-camera"
                 circle
@@ -103,20 +96,18 @@
                 class="action-btn photo-btn"
               />
             </el-tooltip>
-            
-            <!-- 发送按钮 -->
-            <el-button 
+
+            <el-button
               type="primary"
               icon="el-icon-s-promotion"
               circle
-              :loading="loading" 
-              :disabled="!input.trim()"
+              :loading="loading || photoUploading"
+              :disabled="!input.trim() && !photoFile"
               @click="sendMsg"
               class="action-btn send-btn"
             />
           </div>
-          
-          <!-- 隐藏的文件上传输入 -->
+
           <input
             type="file"
             ref="photoInput"
@@ -125,7 +116,7 @@
             @change="onPhotoSelected"
           />
         </div>
-        
+
         <div class="input-tips" v-if="input.length > 0">
           按Enter发送，Shift+Enter换行
         </div>
@@ -135,7 +126,7 @@
 </template>
 
 <script>
-import { escapeHtml, parseInline, parseMarkdown } from '@/utils/markdownParser';
+import { escapeHtml, parseMarkdown } from '@/utils/markdownParser'; // 假设 markdownParser 在此路径
 
 export default {
   name: 'AiHealthQA',
@@ -154,576 +145,605 @@ export default {
       input: '',
       messages: [],
       loading: false,
-      isTyping: false, // 打字动画状态
+      isTyping: false,
       eventSource: null,
-      apiBaseUrl: process.env.VUE_APP_BASE_API, // 从 .env 文件读取后端地址
+      apiBaseUrl: process.env.VUE_APP_BASE_API || '/api', // 提供一个默认值
       typingTimer: null,
-      conversationId: null, // 当前对话ID
-      pageSuggestion: null, // 当前页面的预生成建议
-      userId: null,
+      conversationId: null,
+      pageSuggestion: null,
       photoFile: null,
-      photoUploading: false
+      photoUploading: false,
+      visible: true // 假设组件是可见的，用于 page suggestion 逻辑
     };
   },
-  
+
   computed: {
-    /**
-     * 检查是否有消息历史
-     */
     hasMessages() {
       return this.messages.length > 0;
     },
-    
-    /**
-     * 从 Vuex 获取用户 ID
-     */
     userId() {
-      return this.$store.getters.userId;
+      // 确保 $store 和 getters 存在
+      return this.$store && this.$store.getters && this.$store.getters.userId;
     },
-    
-    /**
-     * 从 Vuex 获取当前页面的健康建议
-     */
     currentPageSuggestion() {
-      if (!this.pageName) return null;
+      if (!this.pageName || !this.$store || !this.$store.getters || !this.$store.getters.getPageSuggestion) return null;
       return this.$store.getters.getPageSuggestion(this.pageName);
     }
   },
-  
+
   watch: {
-    // 监听页面名称变化，加载对应的预生成建议
     pageName: {
       immediate: true,
       handler(newPage) {
-        if (newPage && this.showPreGeneratedAdvice) {
+        if (newPage && this.showPreGeneratedAdvice && this.userId) { // 确保 userId 存在
           this.loadPageSuggestion(newPage);
+        }
+      }
+    },
+    userId: { // 监听 userId 变化，例如登录后
+      handler(newUserId) {
+        if (newUserId) {
+          this.loadChatHistoryFromServer();
+          if (this.pageName && this.showPreGeneratedAdvice) {
+            this.loadPageSuggestion(this.pageName);
+          }
+        } else {
+          // 用户登出或未登录，清空消息和状态
+          this.messages = [];
+          this.conversationId = null;
+          this.pageSuggestion = null;
         }
       }
     }
   },
-  
+
   created() {
-    // 如果有页面名称，尝试加载页面特定的建议
-    if (this.pageName && this.showPreGeneratedAdvice) {
-      this.loadPageSuggestion(this.pageName);
+    if (this.userId) { // 仅在 userId 存在时加载
+        if (this.pageName && this.showPreGeneratedAdvice) {
+          this.loadPageSuggestion(this.pageName);
+        }
+        this.loadChatHistoryFromServer();
     }
-    
-    // 加载历史记录
-    this.loadChatHistoryFromServer();
   },
-  
+
   mounted() {
-    // 添加键盘事件监听
-    document.addEventListener('keydown', this.handleKeyDown);
-    
-    // 加载聊天历史
+    // 使用 .native 修饰符后，不需要手动监听 keydown
+    // document.addEventListener('keydown', this.handleKeyDown);
+
+    // 检查 store 和 userId 是否准备好
     if (this.userId) {
-      this.loadChatHistoryFromServer();
+      // 如果 created 时已加载，这里可能不需要重复加载，除非有特殊逻辑
+      // this.loadChatHistoryFromServer();
+      if (this.showPreGeneratedAdvice && this.pageSuggestion && !this.hasMessages) {
+        this.displayPageSuggestion();
+      }
     }
-    
-    // 如果有页面建议且未显示，则自动显示
-    if (this.showPreGeneratedAdvice && this.pageSuggestion && !this.hasMessages) {
-      this.displayPageSuggestion();
-    }
-    
-    // 滚动到底部
     this.scrollToBottom();
   },
-  
+
   beforeDestroy() {
-    // 清理资源
-    if (this.eventSource) this.eventSource.close();
+    if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+    }
     if (this.typingTimer) clearTimeout(this.typingTimer);
-    document.removeEventListener('keydown', this.handleKeyDown);
+    // document.removeEventListener('keydown', this.handleKeyDown);
   },
-  
+
   methods: {
-    /**
-     * 处理键盘事件
-     */
     handleKeyDown(e) {
-      // 如果按下Shift+Enter，阻止默认的发送行为
       if (e.key === 'Enter' && e.shiftKey) {
-        // 允许换行，不需要做任何事
-      } else if (e.key === 'Enter' && !e.shiftKey && !this.loading && this.input.trim()) {
-        // 如果只按Enter且输入框有内容，发送消息
+        return; // 允许换行
+      }
+      if (e.key === 'Enter' && !this.loading && (this.input.trim() || this.photoFile)) {
         e.preventDefault();
         this.sendMsg();
       }
     },
-    
-    /**
-     * 处理拍照上传
-     */
+
     handlePhotoUpload() {
-      // 触发隐藏的文件输入点击
+      if (this.loading || this.photoUploading) return;
       this.$refs.photoInput.click();
     },
-    
-    /**
-     * 处理照片选择
-     */
+
     onPhotoSelected(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
-      // 验证文件类型
+
       if (!file.type.startsWith('image/')) {
         this.$message.error('请选择图片文件');
+        event.target.value = null; // 清空选择
         return;
       }
-      
-      // 验证文件大小（限制为5MB）
+
       if (file.size > 5 * 1024 * 1024) {
         this.$message.error('图片大小不能超过5MB');
+        event.target.value = null; // 清空选择
         return;
       }
-      
+
       this.photoFile = file;
-      this.uploadPhoto();
+      this.$message.success('图片已选择，点击发送按钮或按Enter上传');
+      // 不需要清空 event.target.value，因为文件引用已保存在 photoFile
     },
-    
-    /**
-     * 上传照片到后端
-     */
+
     uploadPhoto() {
-      if (!this.photoFile) return;
-      
+      if (!this.photoFile || this.loading || this.photoUploading) return;
+
       this.photoUploading = true;
-      
-      // 创建FormData
-      const formData = new FormData();
-      formData.append('photo', this.photoFile);
-      formData.append('userId', this.userId);
-      
-      // TODO: 调用后端拍照上传API
-      // 这里预留了接口调用结构，实际实现时可以替换为真实API调用
-      /*
-      // 实际API调用示例
-      this.$axios.post(this.apiBaseUrl + '/ai/upload-photo', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-Token': this.$store.getters.token
-        }
-      }).then(response => {
-        // 处理成功响应
-      }).catch(error => {
-        // 处理错误
-      }).finally(() => {
-        this.photoUploading = false;
+      this.loading = true; // 统一loading状态
+
+      // --- 修改点: 如果 input 为空，发送一个空格 ---
+      const userMessage = this.input ? this.input.trim() : ' ';
+      // --- 结束修改点 ---
+
+      const imageUrl = URL.createObjectURL(this.photoFile);
+      this.messages.push({
+        role: 'user',
+        content: `<div class="uploaded-image"><img src="${imageUrl}" alt="用户上传图片" style="max-width: 200px; max-height: 200px; border-radius: 4px;" /></div>${this.input.trim() ? `<p>${escapeHtml(this.input.trim())}</p>` : ''}`, // 显示原始未处理的输入
+        time: this.getCurrentTime()
       });
-      */
-      
-      // 模拟上传成功
-      setTimeout(() => {
+
+      const currentPhotoFile = this.photoFile;
+      this.photoFile = null;
+      this.input = '';
+      this.$refs.photoInput.value = '';
+      this.scrollToBottom();
+
+      const time = this.getCurrentTime();
+      const aiMessagePlaceholderIndex = this.messages.length; // 预留索引
+      this.messages.push({ role: 'ai', content: '', time: time });
+
+      const token = this.$store.getters.token;
+      if (!token) {
+        this.handleSSEError(aiMessagePlaceholderIndex, time, "认证失败，请重新登录");
+        URL.revokeObjectURL(imageUrl); // 清理URL
         this.photoUploading = false;
-        
-        // 添加用户消息，显示上传的图片
-        const imageUrl = URL.createObjectURL(this.photoFile);
-        this.messages.push({
-          role: 'user',
-          content: `<div class="uploaded-image"><img src="${imageUrl}" alt="用户上传图片" /></div>`,
-          time: this.getCurrentTime()
-        });
-        
-        // 清空文件输入
-        this.$refs.photoInput.value = '';
-        this.photoFile = null;
-        
-        // 滚动到底部
-        this.scrollToBottom();
-        
-        // 发送给AI处理
-        this.addAIMessage('正在分析您上传的图片...');
-        
-        // 模拟 AI 响应
-        setTimeout(() => {
-          this.addAIMessage('根据您上传的图片，我可以看到这是一张健康相关的图片。如果您有任何关于这张图片的健康问题，请随时询问我。');
-        }, 2000);
-      }, 1500);
+        this.loading = false;
+        return;
+      }
+
+      this.isTyping = true;
+
+      const formData = new FormData();
+      formData.append('token', token);
+      formData.append('message', userMessage); // 发送处理后的 message (可能是空格)
+      formData.append('file', currentPhotoFile);
+
+      if (this.conversationId && this.conversationId !== 'new') {
+        formData.append('conversationId', this.conversationId);
+      }
+
+      fetch(`${this.apiBaseUrl}/chatStream`, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        this.isTyping = false; // 收到响应就停止打字动画
+
+        if (response.ok) {
+          this.handleStreamResponse(response, aiMessagePlaceholderIndex, time, imageUrl);
+        } else {
+          response.text().then(text => {
+            let errorMsg = `服务器错误 ${response.status}`;
+            try {
+                const errJson = JSON.parse(text);
+                errorMsg = `${errorMsg}: ${errJson.error || errJson.message || text}`;
+            } catch(e) {
+                errorMsg = `${errorMsg}: ${text}`;
+            }
+            throw new Error(errorMsg);
+          }).catch(err => {
+             // 如果 text() 也失败，使用原始错误
+             throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('发送图片和消息失败:', error);
+        this.handleSSEError(aiMessagePlaceholderIndex, time, `请求失败: ${error.message}`);
+        URL.revokeObjectURL(imageUrl); // 清理URL
+      })
+      .finally(() => {
+        // 注意：loading 和 photoUploading 的最终 false 状态应该在流处理结束后设置
+        // 这里先置 photoUploading 为 false，loading 等待 stream 结束
+         this.photoUploading = false;
+         // this.loading = false; // 移动到 handleStreamResponse 或 handleSSEError 的完成/错误逻辑中
+         this.isTyping = false; // 确保停止
+      });
     },
-    
-    /**
-     * 使用示例问题
-     */
+
     useExample(question) {
       this.input = question;
       this.sendMsg();
     },
-    
-    /**
-     * 获取当前时间格式化字符串
-     */
+
     getCurrentTime() {
       const now = new Date();
       return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     },
-    
+
     formatMessage(content) {
+      // 确保 content 是字符串
+      if (typeof content !== 'string') {
+        return '';
+      }
+      // 先转义 HTML 避免 XSS，再解析 Markdown
+      // 注意：如果 Markdown 解析器内部处理了 HTML 转义，这里可能不需要 escapeHtml
+      // return parseMarkdown(escapeHtml(content));
+      // 假设 parseMarkdown 能安全处理
       return parseMarkdown(content);
     },
-    
-    /**
-     * 添加AI消息
-     */
-    addAIMessage(content) {
-      const time = this.getCurrentTime();
-      this.messages.push({
-        role: 'ai',
-        content: content,
-        time: time
-      });
-      
-      // 滚动到底部
-      this.$nextTick(() => {
-        this.scrollToBottom();
-      });
-    },
-    
-    /**
-     * 从服务器加载聊天历史
-     */
+
     loadChatHistoryFromServer() {
       const token = this.$store.getters.token;
-      if (!token) {
-        console.error('未找到用户token，无法加载聊天历史');
+      if (!token || !this.userId) {
+        console.log('用户未登录或Token无效，不加载历史记录');
+        this.messages = []; // 确保清空
+        this.conversationId = null;
         return;
       }
-      
+
       fetch(`${this.apiBaseUrl}/viewHistory`, {
         method: 'GET',
-        headers: {
-          'X-Token': token,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'X-Token': token, 'Content-Type': 'application/json' }
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error('网络响应异常');
+           return response.json().catch(() => null).then(errBody => {
+               throw new Error(`网络响应异常 (${response.status}): ${errBody ? JSON.stringify(errBody) : response.statusText}`);
+           });
         }
         return response.json();
       })
       .then(data => {
-        if (data && data.length > 0) {
-          // 获取最新的对话ID
+        if (data && Array.isArray(data) && data.length > 0) {
+          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           const latestConversationId = data[0].conversationId;
-          this.conversationId = latestConversationId;
-          
-          // 过滤出最新对话的消息
-          const latestConversation = data.filter(msg => msg.conversationId === latestConversationId);
-          
-          // 转换格式为组件内使用的格式
-          this.messages = latestConversation.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'ai',
-            content: msg.content,
-            time: this.formatTimestamp(msg.timestamp)
-          }));
-          
-          console.log(`已加载对话ID ${latestConversationId} 的历史记录，共 ${this.messages.length} 条消息`);
+
+          if (latestConversationId) {
+             this.conversationId = latestConversationId;
+             const latestConversationMessages = data
+               .filter(msg => msg.conversationId === latestConversationId)
+               .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+             this.messages = latestConversationMessages.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'ai',
+                content: msg.content,
+                time: this.formatTimestamp(msg.timestamp)
+             }));
+             this.$nextTick(this.scrollToBottom);
+          } else {
+             this.messages = [];
+             this.conversationId = null;
+          }
+        } else {
+            this.messages = [];
+            this.conversationId = null;
         }
       })
       .catch(error => {
-        console.error('加载聊天历史失败:', error);
+        console.error('加载聊天历史失败:', error.message);
+        this.messages = [];
+        this.conversationId = null;
       });
     },
-    
-    /**
-     * 格式化时间戳为时间字符串
-     */
+
     formatTimestamp(timestamp) {
       if (!timestamp) return this.getCurrentTime();
-      
-      const date = new Date(timestamp);
-      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      try {
+          const date = new Date(timestamp);
+          if (isNaN(date.getTime())) return this.getCurrentTime();
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      } catch (e) {
+          return this.getCurrentTime();
+      }
     },
-    
-    /**
-     * 重置/清空聊天历史
-     */
+
     clearMessages() {
-      this.$confirm('确定要清空所有对话历史吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
+      if (this.messages.length === 0) {
+        // this.$message.info('当前没有对话历史可清空');
+        return;
+      }
+      this.$confirm('确定要清空当前对话的所有历史记录吗?', '提示', {
+        confirmButtonText: '确定清空', cancelButtonText: '取消', type: 'warning'
       }).then(() => {
         const token = this.$store.getters.token;
         if (!token) {
-          console.error('未找到用户token，无法清空聊天历史');
+          this.$message.error('认证失败，无法清空历史');
           return;
         }
-        
-        // 调用后端API清空历史
-        fetch(`${this.apiBaseUrl}/resetHistory${this.conversationId ? `?conversationId=${this.conversationId}` : ''}`, {
-          method: 'GET',
-          headers: {
-            'X-Token': token
-          }
-        })
+        const url = `${this.apiBaseUrl}/resetHistory${this.conversationId ? `?conversationId=${this.conversationId}` : ''}`;
+        fetch(url, { method: 'GET', headers: { 'X-Token': token }})
         .then(response => {
           if (!response.ok) {
-            throw new Error('清空历史失败');
+             return response.text().then(text => {
+                 throw new Error(`清空历史失败 (${response.status}): ${text || response.statusText}`);
+             });
           }
           return response.text();
         })
         .then(message => {
           this.messages = [];
           this.conversationId = null;
-          
-          this.$message({
-            type: 'success',
-            message: '对话历史已清空'
-          });
-          console.log('清空结果:', message);
+          this.input = '';
+          this.photoFile = null;
+          if(this.$refs.photoInput) this.$refs.photoInput.value = '';
+          this.$message.success('对话历史已清空');
+          this.$nextTick(this.scrollToBottom);
         })
         .catch(error => {
-          console.error('清空聊天历史失败:', error);
-          this.$message({
-            type: 'error',
-            message: '清空历史失败，请稍后重试'
-          });
+          console.error('清空聊天历史操作失败:', error.message);
+          this.$message.error(`清空历史失败: ${error.message}`);
         });
-      }).catch(() => {});
+      }).catch(() => {
+        // this.$message.info('已取消清空操作');
+      });
     },
-    
-    /**
-     * 发送消息到AI
-     */
+
     sendMsg() {
-      if (!this.input.trim() || this.loading) return;
-      
-      const question = this.input.trim();
-      const time = this.getCurrentTime();
-      
-      // 添加用户消息
-      this.messages.push({ 
-        role: 'user', 
-        content: question,
-        time: time
-      });
-      
-      // 清空输入框
-      this.input = '';
-      
-      // 滚动到底部
-      this.scrollToBottom();
-      
-      // 显示AI正在输入的状态
-      this.isTyping = true;
-      this.loading = true;
-      
-      // 开始SSE连接
-      this.startSSE(question);
-    },
-    
-    /**
-     * 滚动到消息区域底部
-     */
-    scrollToBottom() {
-      this.$nextTick(() => {
-        if (this.$refs.msgBox) {
-          this.$refs.msgBox.scrollTop = this.$refs.msgBox.scrollHeight;
-        }
-      });
-    },
-    
-    /**
-     * 启动SSE连接获取AI回复
-     */
-    startSSE(question) {
-      // 关闭之前的连接
-      if (this.eventSource) {
-        this.eventSource.close();
-      }
-      
-      // 准备AI消息
-      const time = this.getCurrentTime();
-      let currentAiMessageIndex = -1;
-      
-      // 创建新的AI消息
-      this.messages.push({ 
-        role: 'ai', 
-        content: '',
-        time: time
-      });
-      currentAiMessageIndex = this.messages.length - 1;
-      
-      // 获取token
-      const token = this.$store.getters.token;
-      if (!token) {
-        console.error('未找到用户token，无法发送聊天请求');
-        this.handleSSEError(currentAiMessageIndex, time, "认证失败，请重新登录");
+      const hasTextInput = this.input && this.input.trim();
+      const hasPhotoInput = this.photoFile;
+
+      if (!hasTextInput && !hasPhotoInput) {
+        // this.$message.warning('请输入问题或选择要上传的图片');
         return;
       }
+      if (this.loading || this.photoUploading) return;
 
-      // 构建SSE URL
-      let sseUrl = `${this.apiBaseUrl}/chatStream?question=${encodeURIComponent(question)}`;
-      // 如果有会话ID，则附加
-      if (this.conversationId) {
-        sseUrl += `&conversationId=${this.conversationId}`;
+      if (hasPhotoInput) {
+        this.uploadPhoto();
+      } else if (hasTextInput) {
+        this.sendTextMessage();
       }
-      // 将 Token 添加为查询参数
-      if (token) {
-        sseUrl += `&token=${encodeURIComponent(token)}`;
-      } else {
-        console.error('未找到用户token，无法建立SSE连接');
-        this.handleSSEError(currentAiMessageIndex, time, "认证失败，请重新登录");
-        return;
-      }
+    },
 
-      // 创建SSE连接 - 移除 headers 选项
-      this.eventSource = new EventSource(sseUrl);
-      
-      // 连接打开事件
-      this.eventSource.onopen = () => {
-        console.log("SSE连接已打开");
-      };
-      
-      // 监听特殊事件：conversationId
-      this.eventSource.addEventListener('conversationId', (event) => {
-        const newConversationId = event.data;
-        console.log(`收到新的会话ID: ${newConversationId}`);
-        this.conversationId = newConversationId;
-      });
-      
-      // 监听特殊事件：error
-      this.eventSource.addEventListener('error', (event) => {
-        const errorMessage = event.data || "服务器错误，请稍后重试";
-        console.error(`SSE错误事件: ${errorMessage}`);
-        this.handleSSEError(currentAiMessageIndex, time, errorMessage);
-      });
+    sendTextMessage() {
+        const question = this.input.trim();
+        if (!question) return; // 防止发送空消息
 
-      // 常规消息接收事件
-      this.eventSource.onmessage = (event) => {
-        // 隐藏打字动画，显示实际内容
-        this.isTyping = false;
-        
-        const rawData = event.data;
-        
-        // 检查是否为结束标记
-        if (rawData === '[DONE]') {
-          console.log("流式响应完成");
-          this.loading = false;
-          
-          if (this.eventSource) {
-            this.eventSource.close();
-          }
+        const time = this.getCurrentTime();
+        this.messages.push({ role: 'user', content: escapeHtml(question), time: time }); // 转义用户输入显示
+        this.input = '';
+        this.scrollToBottom();
+
+        this.loading = true;
+        this.isTyping = true;
+
+        const aiMessagePlaceholderIndex = this.messages.length;
+        this.messages.push({ role: 'ai', content: '', time: time });
+
+        const token = this.$store.getters.token;
+        if (!token) {
+          this.handleSSEError(aiMessagePlaceholderIndex, time, "认证失败，请重新登录");
           return;
         }
 
-        // 解析JSON响应
-        try {
-          const jsonChunk = JSON.parse(rawData);
-          const contentChunk = jsonChunk.choices?.[0]?.delta?.content;
-
-          if (contentChunk !== null && contentChunk !== undefined) {
-            // 更新AI消息内容
-            if (currentAiMessageIndex !== -1) {
-              const updatedContent = this.messages[currentAiMessageIndex].content + contentChunk;
-              this.$set(this.messages, currentAiMessageIndex, { 
-                role: 'ai', 
-                content: updatedContent,
-                time: time
-              });
-            }
-
-            // 滚动到底部
-            this.scrollToBottom();
-          }
-        } catch (err) {
-          console.error('解析SSE数据错误:', err);
+        const formData = new FormData();
+        formData.append('token', token);
+        formData.append('message', question); // 发送原始未转义的问题
+        if (this.conversationId && this.conversationId !== 'new') {
+          formData.append('conversationId', this.conversationId);
         }
-      };
 
-      // 错误处理
-      this.eventSource.onerror = (err) => {
-        console.error("SSE连接错误:", err);
-        this.handleSSEError(currentAiMessageIndex, time);
-      };
-    },
-    
-    /**
-     * 处理SSE错误
-     */
-    handleSSEError(currentAiMessageIndex, time, errorMessage = null) {
-      this.isTyping = false;
-      this.loading = false;
-      
-      // 显示错误消息
-      if (currentAiMessageIndex !== -1) {
-        const errorMsg = `\n\n[${errorMessage || "连接错误，请稍后重试或检查服务器状态"}]`;
-        const updatedContent = this.messages[currentAiMessageIndex].content || errorMsg;
-        
-        // 如果内容为空，直接显示错误消息，否则追加
-        this.$set(this.messages, currentAiMessageIndex, { 
-          role: 'ai', 
-          content: updatedContent.trim() ? updatedContent + errorMsg : errorMsg,
-          time: time
-        });
-      }
-
-      if (this.eventSource) {
-        this.eventSource.close();
-      }
-    },
-    
-    /**
-     * 加载特定页面的预生成建议
-     */
-    loadPageSuggestion(pageName) {
-      if (!pageName || !this.userId) return;
-      
-      // 如果Vuex中已有该页面的建议，直接使用
-      const suggestion = this.$store.getters.getPageSuggestion(pageName);
-      if (suggestion) {
-        this.pageSuggestion = suggestion;
-        return;
-      }
-      
-      // 否则调用 action 获取
-      this.$store.dispatch('user/getPageSuggestion', pageName)
-        .then(suggestion => {
-          this.pageSuggestion = suggestion;
-          if (this.visible && this.showPreGeneratedAdvice && !this.hasMessages) {
-            this.displayPageSuggestion();
+        fetch(`${this.apiBaseUrl}/chatStream`, {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => {
+          this.isTyping = false;
+          if (response.ok) {
+            this.handleStreamResponse(response, aiMessagePlaceholderIndex, time);
+          } else {
+            response.text().then(text => {
+              let errorMsg = `服务器错误 ${response.status}`;
+              try {
+                  const errJson = JSON.parse(text);
+                  errorMsg = `${errorMsg}: ${errJson.error || errJson.message || text}`;
+              } catch(e) {
+                  errorMsg = `${errorMsg}: ${text}`;
+              }
+              throw new Error(errorMsg);
+            }).catch(err => {
+               throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
+            });
           }
         })
         .catch(error => {
-          console.error('加载页面建议失败:', error);
+          console.error('发送文本消息失败:', error);
+          this.handleSSEError(aiMessagePlaceholderIndex, time, `请求失败: ${error.message}`);
+        })
+        .finally(() => {
+           // loading 的最终 false 状态应该在流处理结束后设置
+           // this.loading = false; // 移动到 handleStreamResponse 或 handleSSEError
+           this.isTyping = false;
         });
     },
-    
-    /**
-     * 显示预生成的页面建议
-     */
-    displayPageSuggestion() {
-      // 如果没有预生成建议或已有消息，则不显示
-      if (!this.pageSuggestion || this.hasMessages) return;
-      
-      // 添加AI消息，显示预生成的建议
-      this.messages.push({
-        role: 'ai',
-        content: `<strong>针对您的健康状况，关于${this.getPageDisplayName()}的建议：</strong><br><br>${this.pageSuggestion.content || this.pageSuggestion}`,
-        time: this.getCurrentTime()
-      });
-      
-      // 滚动到底部
+
+    scrollToBottom() {
       this.$nextTick(() => {
-        this.scrollToBottom();
+        const msgBox = this.$refs.msgBox;
+        if (msgBox) {
+          msgBox.scrollTop = msgBox.scrollHeight;
+        }
       });
     },
-    
-    /**
-     * 获取页面的显示名称
-     */
+
+    handleStreamResponse(response, messageIndex, time, tempImageUrl = null) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        const processChunk = ({ done, value }) => {
+            if (done) {
+                console.log('Stream finished.');
+                if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
+                this.loading = false; // 最终设置 loading 状态
+                this.isTyping = false;
+                return;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split('\n\n');
+            buffer = events.pop(); // Keep the last (potentially incomplete) event in buffer
+
+            events.forEach(eventString => {
+                if (!eventString.trim()) return;
+
+                let eventName = 'message'; // Default SSE event name
+                let eventData = '';
+
+                const lines = eventString.split('\n');
+                lines.forEach(line => {
+                    if (line.startsWith('event:')) {
+                        eventName = line.substring('event:'.length).trim();
+                    } else if (line.startsWith('data:')) {
+                        eventData += line.substring('data:'.length).trim() + '\n'; // Accumulate multi-line data
+                    }
+                });
+
+                eventData = eventData.trim(); // Remove trailing newline
+
+                this.handleSseEvent(eventName, eventData, messageIndex, time);
+            });
+
+            reader.read().then(processChunk).catch(error => {
+                console.error('Error reading stream:', error);
+                this.handleSSEError(messageIndex, time, `读取流错误: ${error.message}`);
+                if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
+                this.loading = false; // 确保在错误时也设置 loading
+                this.isTyping = false;
+            });
+        };
+
+        reader.read().then(processChunk).catch(error => {
+             console.error('Error starting stream reading:', error);
+             this.handleSSEError(messageIndex, time, `启动读取流错误: ${error.message}`);
+             if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
+             this.loading = false;
+             this.isTyping = false;
+        });
+    },
+
+    handleSseEvent(eventName, eventData, messageIndex, time) {
+         if (eventName === 'conversationId') {
+            console.log('Received conversationId:', eventData);
+            this.conversationId = eventData;
+         } else if (eventName === 'detectionResultImage') {
+            console.log('Received detectionResultImage:', eventData);
+             if (messageIndex !== -1 && messageIndex < this.messages.length) {
+                 const currentMsg = this.messages[messageIndex];
+                 // Prepend image, assuming text follows
+                 const imageHtml = `<div class="detection-result-image"><img src="${eventData}" alt="AI检测结果" style="max-width: 200px; max-height: 200px; border-radius: 4px; margin-bottom: 5px;" /></div>`;
+                 this.$set(this.messages, messageIndex, { ...currentMsg, content: imageHtml + (currentMsg.content || '') });
+                 this.scrollToBottom();
+             }
+         } else if (eventData === '[DONE]') {
+            console.log('Received [DONE] signal.');
+            // Actual completion is handled when reader.read() returns done: true
+         } else if (eventName === 'message' || eventName === 'data') { // Handle default message/data event
+             try {
+                 const jsonChunk = JSON.parse(eventData);
+                 const contentChunk = jsonChunk.choices?.[0]?.delta?.content;
+                 if (contentChunk !== null && contentChunk !== undefined) {
+                     if (messageIndex !== -1 && messageIndex < this.messages.length) {
+                         const currentMsg = this.messages[messageIndex];
+                         this.$set(this.messages, messageIndex, { ...currentMsg, content: (currentMsg.content || '') + contentChunk });
+                         this.scrollToBottom();
+                     }
+                 } else if (jsonChunk.error) {
+                    this.handleSSEError(messageIndex, time, `AI处理错误: ${jsonChunk.error.message || JSON.stringify(jsonChunk.error)}`);
+                 }
+             } catch (err) {
+                 // If JSON parsing fails, treat as plain text chunk (might happen with some models/errors)
+                 if (messageIndex !== -1 && messageIndex < this.messages.length) {
+                     const currentMsg = this.messages[messageIndex];
+                     this.$set(this.messages, messageIndex, { ...currentMsg, content: (currentMsg.content || '') + eventData });
+                     this.scrollToBottom();
+                 }
+             }
+         } else if (eventName === 'error') {
+             console.error('Received error event from SSE:', eventData);
+             this.handleSSEError(messageIndex, time, `服务器推送错误: ${eventData}`);
+         }
+    },
+
+    handleSSEError(messageIndex, time, errorMessage = null) {
+      this.isTyping = false;
+      this.loading = false;
+      this.photoUploading = false;
+
+      const finalErrorMessage = errorMessage || "发生未知错误";
+      console.error("SSE Error:", finalErrorMessage);
+
+      if (messageIndex !== -1 && messageIndex < this.messages.length) {
+        const errorDisplayMsg = `<span style="color: red;">[错误: ${escapeHtml(finalErrorMessage)}]</span>`;
+        const currentMsg = this.messages[messageIndex];
+        const currentContent = currentMsg.content || '';
+        // Avoid appending duplicate error messages
+        if (!currentContent.includes(errorDisplayMsg)) {
+             this.$set(this.messages, messageIndex, {
+               ...currentMsg,
+               content: currentContent ? currentContent + '\n' + errorDisplayMsg : errorDisplayMsg
+             });
+        }
+      } else {
+         this.messages.push({
+            role: 'ai',
+            content: `<span style="color: red;">[错误: ${escapeHtml(finalErrorMessage)}]</span>`,
+            time: this.getCurrentTime()
+         });
+      }
+      this.scrollToBottom();
+
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+    },
+
+    loadPageSuggestion(pageName) {
+      if (!pageName || !this.userId || !this.showPreGeneratedAdvice) return;
+      if (!this.$store || !this.$store.dispatch) {
+          console.error("Vuex store or dispatch not available.");
+          return;
+      }
+
+      const suggestion = this.$store.getters.getPageSuggestion ? this.$store.getters.getPageSuggestion(pageName) : null;
+      if (suggestion) {
+        this.pageSuggestion = suggestion;
+        if (!this.hasMessages && this.visible) this.displayPageSuggestion();
+        return;
+      }
+
+      this.$store.dispatch('user/getPageSuggestion', pageName)
+        .then(suggestion => {
+          if (suggestion) {
+             this.pageSuggestion = suggestion;
+             if (!this.hasMessages && this.visible) this.displayPageSuggestion();
+          }
+        })
+        .catch(error => {
+          console.error(`加载页面 '${pageName}' 建议失败:`, error);
+        });
+    },
+
+    displayPageSuggestion() {
+      if (!this.pageSuggestion || this.hasMessages) return;
+      const suggestionContent = this.pageSuggestion.content || this.pageSuggestion;
+      this.messages.push({
+        role: 'ai',
+        content: `<strong>针对您的健康状况，关于${this.getPageDisplayName()}的建议：</strong><br><br>${suggestionContent}`,
+        time: this.getCurrentTime()
+      });
+      this.$nextTick(this.scrollToBottom);
+    },
+
     getPageDisplayName() {
       const pageNames = {
-        'healthAssessment': '健康评估',
-        'diet': '饮食计划',
-        'exercise': '运动建议',
-        'sleep': '睡眠质量',
-        'mentalHealth': '心理健康'
+        'healthAssessment': '健康评估', 'diet': '饮食计划', 'exercise': '运动建议',
+        'sleep': '睡眠质量', 'mentalHealth': '心理健康'
       };
-      
       return pageNames[this.pageName] || this.pageName;
     },
   },
