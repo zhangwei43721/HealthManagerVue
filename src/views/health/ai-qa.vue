@@ -305,9 +305,14 @@ export default {
 
       this.isTyping = true;
 
+      // 使用Blob确保UTF-8编码
       const formData = new FormData();
       formData.append('token', token);
-      formData.append('message', userMessage); // 发送处理后的 message (可能是空格)
+
+      // 使用Blob包装消息内容，确保UTF-8编码
+      const messageBlob = new Blob([userMessage], { type: 'text/plain;charset=UTF-8' });
+      formData.append('message', messageBlob);
+
       formData.append('file', currentPhotoFile);
 
       if (this.conversationId && this.conversationId !== 'new') {
@@ -531,9 +536,14 @@ export default {
           return;
         }
 
+        // 使用Blob确保UTF-8编码
         const formData = new FormData();
         formData.append('token', token);
-        formData.append('message', question); // 发送原始未转义的问题
+        
+        // 使用Blob包装文本内容，确保UTF-8编码
+        const messageBlob = new Blob([question], { type: 'text/plain;charset=UTF-8' });
+        formData.append('message', messageBlob);
+        
         if (this.conversationId && this.conversationId !== 'new') {
           formData.append('conversationId', this.conversationId);
         }
