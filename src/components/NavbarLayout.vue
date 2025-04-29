@@ -16,7 +16,7 @@
         </div>
         <el-dropdown-menu slot="dropdown" class="user-dropdown">
           <router-link to="/change-password">
-            <el-dropdown-item> 修改密码 </el-dropdown-item>
+            <el-dropdown-item> 修改资料 </el-dropdown-item>
           </router-link>
           <router-link to="/dashboard">
             <el-dropdown-item>主页</el-dropdown-item>

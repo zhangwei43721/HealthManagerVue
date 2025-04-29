@@ -171,6 +171,10 @@ export default {
       if (url) {
         this.imageUrl = url;
         this.$message.success('头像上传成功');
+        
+        // 直接 commit mutation 来更新 Vuex store 中的头像
+        this.$store.commit('user/SET_AVATAR', url);
+
       } else {
         console.error('后端返回数据中没有找到头像 URL:', res);
         this.$message.warning('头像已上传，但获取图片地址失败');
