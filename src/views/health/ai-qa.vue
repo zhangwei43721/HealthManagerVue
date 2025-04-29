@@ -364,15 +364,27 @@ export default {
     },
 
     formatMessage(content) {
-      // 确保 content 是字符串
       if (typeof content !== 'string') {
         return '';
       }
-      // 先转义 HTML 避免 XSS，再解析 Markdown
-      // 注意：如果 Markdown 解析器内部处理了 HTML 转义，这里可能不需要 escapeHtml
-      // return parseMarkdown(escapeHtml(content));
-      // 假设 parseMarkdown 能安全处理
-      return parseMarkdown(content);
+      // 正则表达式匹配开头的用户图片 div 或 AI 图片 div
+      // 使用非捕获组 (?:...) 来匹配两种 class
+      const imageDivRegex = /^(<(?:div class="uploaded-image"|div class="detection-result-image")>.*?<\/div>)/s;
+      const match = content.match(imageDivRegex);
+
+      if (match) {
+        // 如果找到了图片 div 在开头
+        const imageHtml = match[1]; // 提取完整的图片 HTML
+        const restContent = content.substring(imageHtml.length); // 获取图片之后的内容
+
+        // 直接返回图片 HTML，并对剩余内容应用 Markdown 解析
+        // 注意：用户消息中可能已经包含了 <p> 标签，parseMarkdown 不应再次处理它
+        // 简单地拼接即可，浏览器会处理块级元素
+        return imageHtml + parseMarkdown(restContent || '');
+      } else {
+        // 如果开头没有图片 div，则像以前一样，对整个内容应用 Markdown 解析
+        return parseMarkdown(content);
+      }
     },
 
     loadChatHistoryFromServer() {
