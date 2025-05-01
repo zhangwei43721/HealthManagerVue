@@ -127,6 +127,7 @@
 
 <script>
 import { escapeHtml, parseMarkdown } from '@/utils/markdownParser'; // 假设 markdownParser 在此路径
+import axios from 'axios';
 
 export default {
   name: 'AiHealthQA',
@@ -267,95 +268,167 @@ export default {
       // 不需要清空 event.target.value，因为文件引用已保存在 photoFile
     },
 
-    uploadPhoto() {
-      if (!this.photoFile || this.loading || this.photoUploading) return;
+    async sendMsg() {
+      const userContent = this.input.trim();
+      const photo = this.photoFile;
 
-      this.photoUploading = true;
-      this.loading = true; // 统一loading状态
+      if (!userContent && !photo) return;
+      if (!this.userId) {
+          this.$message.error('请先登录后再进行提问。');
+          // 可以选择性地跳转到登录页
+          // this.$router.push('/login');
+          return;
+      }
 
-      // --- 修改点: 如果 input 为空，发送一个空格 ---
-      const userMessage = this.input ? this.input.trim() : ' ';
-      // --- 结束修改点 ---
+      const token = this.$store.getters.token; // 获取 Token
+      if (!token) {
+          this.$message.error('无法获取认证信息，请重新登录。');
+          return;
+      }
 
-      const imageUrl = URL.createObjectURL(this.photoFile);
-      this.messages.push({
-        role: 'user',
-        content: `<div class="uploaded-image"><img src="${imageUrl}" alt="用户上传图片" style="max-width: 200px; max-height: 200px; border-radius: 4px;" /></div>${this.input.trim() ? `<p>${escapeHtml(this.input.trim())}</p>` : ''}`, // 显示原始未处理的输入
-        time: this.getCurrentTime()
-      });
+      const userMessage = {
+          role: 'user',
+          content: userContent,
+          time: this.getCurrentTime(),
+          photo: photo ? URL.createObjectURL(photo) : null // 如果有照片，创建预览URL
+      };
+      this.messages.push(userMessage);
 
-      const currentPhotoFile = this.photoFile;
-      this.photoFile = null;
-      this.input = '';
-      this.$refs.photoInput.value = '';
+      this.loading = true;
+      this.isTyping = true;
+      this.input = ''; // 清空输入框
+      this.photoFile = null; // 清空文件
+      this.$refs.photoInput.value = null; // 重置文件输入
+
       this.scrollToBottom();
 
-      const time = this.getCurrentTime();
-      const aiMessagePlaceholderIndex = this.messages.length; // 预留索引
-      this.messages.push({ role: 'ai', content: '', time: time });
+      const assistantMessage = {
+          role: 'assistant',
+          content: '',
+          time: this.getCurrentTime(),
+          isLoading: true // 初始设为加载中
+      };
+      this.messages.push(assistantMessage);
+      const assistantMsgIndex = this.messages.length - 1; // 获取助手消息的索引
 
-      const token = this.$store.getters.token;
-      if (!token) {
-        this.handleSSEError(aiMessagePlaceholderIndex, time, "认证失败，请重新登录");
-        URL.revokeObjectURL(imageUrl); // 清理URL
-        this.photoUploading = false;
-        this.loading = false;
-        return;
-      }
+      this.scrollToBottom(); // 添加新消息后滚动到底部
 
-      this.isTyping = true;
+      try {
+        if (photo) {
+          // --- 修改 /chatStream 调用 ---
+          this.photoUploading = true;
+          const formData = new FormData();
+          formData.append('prompt', userContent || '分析图片'); // 如果没有文字提示，给一个默认值
+          formData.append('image', photo);
+          // formData.append('token', token); // 移除 token
 
-      // 使用Blob确保UTF-8编码
-      const formData = new FormData();
-      formData.append('token', token);
-
-      // 使用Blob包装消息内容，确保UTF-8编码
-      const messageBlob = new Blob([userMessage], { type: 'text/plain;charset=UTF-8' });
-      formData.append('message', messageBlob);
-
-      formData.append('file', currentPhotoFile);
-
-      if (this.conversationId && this.conversationId !== 'new') {
-        formData.append('conversationId', this.conversationId);
-      }
-
-      fetch(`${this.apiBaseUrl}/chatStream`, {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        this.isTyping = false; // 收到响应就停止打字动画
-
-        if (response.ok) {
-          this.handleStreamResponse(response, aiMessagePlaceholderIndex, time, imageUrl);
-        } else {
-          response.text().then(text => {
-            let errorMsg = `服务器错误 ${response.status}`;
-            try {
-                const errJson = JSON.parse(text);
-                errorMsg = `${errorMsg}: ${errJson.error || errJson.message || text}`;
-            } catch(e) {
-                errorMsg = `${errorMsg}: ${text}`;
-            }
-            throw new Error(errorMsg);
-          }).catch(err => {
-             // 如果 text() 也失败，使用原始错误
-             throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
+          // 使用 Axios 发送带图片的多部分请求
+          const response = await axios.post(`${this.apiBaseUrl}/chatStream`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'X-Token': token // 在 headers 中添加 token
+            },
+            responseType: 'text' // 明确响应类型，虽然可能不是必须的
           });
+
+          this.photoUploading = false;
+          this.isTyping = false;
+          this.messages[assistantMsgIndex].content = parseMarkdown(response.data || '无法获取回复'); // 使用解析器
+          this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
+          this.messages[assistantMsgIndex].time = this.getCurrentTime();
+          this.saveChatHistoryToServer(); // 保存历史记录
+
+        } else {
+          // --- 修改 /chatStream/chinese 调用 ---
+          // 使用 EventSource 处理纯文本流式响应
+          const encodedPrompt = encodeURIComponent(userContent);
+          // 移除 URL 中的 token 查询参数
+          const url = `${this.apiBaseUrl}/chatStream/chinese?prompt=${encodedPrompt}`;
+
+          if (this.eventSource) {
+            this.eventSource.close();
+          }
+
+          // 注意：标准 EventSource 不支持自定义 header。
+          // 这里假设有全局拦截器处理 token，或者后端允许其他方式验证。
+          this.eventSource = new EventSource(url, { withCredentials: true }); // withCredentials 可能需要，取决于 CORS 配置
+
+          this.eventSource.onmessage = (event) => {
+              if (this.typingTimer) clearTimeout(this.typingTimer); // 清除模拟打字效果
+              this.isTyping = false; // 停止打字指示器
+
+              const data = event.data;
+              if (data === '[DONE]') {
+                  this.eventSource.close();
+                  this.eventSource = null;
+                  this.loading = false;
+                  this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
+                  this.messages[assistantMsgIndex].time = this.getCurrentTime();
+                  this.saveChatHistoryToServer(); // 保存历史记录
+                  return;
+              }
+
+              try {
+                  const chunk = JSON.parse(data);
+                  if (chunk && chunk.choices && chunk.choices[0].delta && chunk.choices[0].delta.content) {
+                      this.messages[assistantMsgIndex].content += chunk.choices[0].delta.content;
+                      this.scrollToBottom();
+                  } else if (chunk && chunk.error) {
+                      console.error("SSE Error Chunk:", chunk.error);
+                      this.messages[assistantMsgIndex].content += `\\n[错误: ${chunk.error}]`;
+                      this.eventSource.close();
+                      this.eventSource = null;
+                      this.loading = false;
+                      this.messages[assistantMsgIndex].isLoading = false;
+                      this.messages[assistantMsgIndex].time = this.getCurrentTime();
+                  }
+              } catch (e) {
+                  // 如果 JSON 解析失败，直接附加原始数据，可能是普通文本片段
+                  if (data && data.trim()) { // 避免添加空字符串
+                    this.messages[assistantMsgIndex].content += data;
+                    this.scrollToBottom();
+                  }
+                  console.warn("Received non-JSON message or JSON parse error:", data, e);
+              }
+          };
+
+          this.eventSource.onerror = (error) => {
+              console.error('EventSource failed:', error);
+              this.eventSource.close();
+              this.eventSource = null;
+              this.loading = false;
+              this.isTyping = false;
+              this.messages[assistantMsgIndex].content += '\\n[连接错误，请稍后再试]';
+              this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
+              this.messages[assistantMsgIndex].time = this.getCurrentTime();
+          };
+
+          // 启动模拟打字效果
+          this.startTypingIndicator();
         }
-      })
-      .catch(error => {
-        console.error('发送图片和消息失败:', error);
-        this.handleSSEError(aiMessagePlaceholderIndex, time, `请求失败: ${error.message}`);
-        URL.revokeObjectURL(imageUrl); // 清理URL
-      })
-      .finally(() => {
-        // 注意：loading 和 photoUploading 的最终 false 状态应该在流处理结束后设置
-        // 这里先置 photoUploading 为 false，loading 等待 stream 结束
-         this.photoUploading = false;
-         // this.loading = false; // 移动到 handleStreamResponse 或 handleSSEError 的完成/错误逻辑中
-         this.isTyping = false; // 确保停止
-      });
+      } catch (error) {
+        console.error('Error sending message:', error);
+        this.loading = false;
+        this.isTyping = false;
+        this.photoUploading = false;
+        const errorMsg = error.response && error.response.data ? error.response.data.message || error.response.data : '发送失败，请检查网络或联系管理员';
+        this.messages[assistantMsgIndex].content = `[请求错误: ${errorMsg}]`;
+        this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
+        this.messages[assistantMsgIndex].time = this.getCurrentTime();
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+      } finally {
+          // 确保 loading 和 typing 状态在各种情况下都能正确重置
+          // 注意：对于 EventSource，loading 状态在 [DONE] 或 error 时才重置
+          if (!this.eventSource) { // 如果不是流式请求或流已结束/错误
+            this.loading = false;
+            this.isTyping = false;
+          }
+          this.photoUploading = false; // 确保上传状态重置
+          this.scrollToBottom(); // 确保最终滚动到底部
+      }
     },
 
     useExample(question) {
@@ -496,90 +569,6 @@ export default {
       }).catch(() => {
         // this.$message.info('已取消清空操作');
       });
-    },
-
-    sendMsg() {
-      const hasTextInput = this.input && this.input.trim();
-      const hasPhotoInput = this.photoFile;
-
-      if (!hasTextInput && !hasPhotoInput) {
-        // this.$message.warning('请输入问题或选择要上传的图片');
-        return;
-      }
-      if (this.loading || this.photoUploading) return;
-
-      if (hasPhotoInput) {
-        this.uploadPhoto();
-      } else if (hasTextInput) {
-        this.sendTextMessage();
-      }
-    },
-
-    sendTextMessage() {
-        const question = this.input.trim();
-        if (!question) return; // 防止发送空消息
-
-        const time = this.getCurrentTime();
-        this.messages.push({ role: 'user', content: escapeHtml(question), time: time }); // 转义用户输入显示
-        this.input = '';
-        this.scrollToBottom();
-
-        this.loading = true;
-        this.isTyping = true;
-
-        const aiMessagePlaceholderIndex = this.messages.length;
-        this.messages.push({ role: 'ai', content: '', time: time });
-
-        const token = this.$store.getters.token;
-        if (!token) {
-          this.handleSSEError(aiMessagePlaceholderIndex, time, "认证失败，请重新登录");
-          return;
-        }
-
-        // 使用Blob确保UTF-8编码
-        const formData = new FormData();
-        formData.append('token', token);
-        
-        // 使用Blob包装文本内容，确保UTF-8编码
-        const messageBlob = new Blob([question], { type: 'text/plain;charset=UTF-8' });
-        formData.append('message', messageBlob);
-        
-        if (this.conversationId && this.conversationId !== 'new') {
-          formData.append('conversationId', this.conversationId);
-        }
-
-        fetch(`${this.apiBaseUrl}/chatStream`, {
-          method: 'POST',
-          body: formData
-        })
-        .then(response => {
-          this.isTyping = false;
-          if (response.ok) {
-            this.handleStreamResponse(response, aiMessagePlaceholderIndex, time);
-          } else {
-            response.text().then(text => {
-              let errorMsg = `服务器错误 ${response.status}`;
-              try {
-                  const errJson = JSON.parse(text);
-                  errorMsg = `${errorMsg}: ${errJson.error || errJson.message || text}`;
-              } catch(e) {
-                  errorMsg = `${errorMsg}: ${text}`;
-              }
-              throw new Error(errorMsg);
-            }).catch(err => {
-               throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
-            });
-          }
-        })
-        .catch(error => {
-          console.error('发送文本消息失败:', error);
-          this.handleSSEError(aiMessagePlaceholderIndex, time, `请求失败: ${error.message}`);
-        })
-        .finally(() => {
-           // loading 的最终 false 状态应该在流处理结束后设置
-           // this.loading = false; // 移动到 handleStreamResponse 或 handleSSEError
-           this.isTyping = false;
-        });
     },
 
     scrollToBottom() {
