@@ -1,13 +1,16 @@
 /* 全局样式 */
 :root {
-    --primary-color: #4361ee;
-    --secondary-color: #7209b7;
-    --accent-color: #4cc9f0;
-    --dark-color: #1a1a2e;
+    --primary-color: #42b983;   /* 主色 - 健康绿 */
+    --secondary-color: #1e88e5; /* 辅色 - 信任蓝 */
+    --accent-color: #00bcd4;    /* 信息色 - 清新蓝 */
+    --success-color: #4caf50;   /* 成功状态 */
+    --warning-color: #ff9800;   /* 警告状态 */
+    --danger-color: #f44336;    /* 危险状态 */
+    --dark-color: #2c3e50;      /* 深色调整为更适合的深色 */
     --light-color: #f8f9fa;
-    --gradient-1: linear-gradient(135deg, #4361ee, #3a0ca3);
-    --gradient-2: linear-gradient(135deg, #7209b7, #f72585);
-    --gradient-3: linear-gradient(135deg, #4cc9f0, #4361ee);
+    --gradient-1: linear-gradient(135deg, #42b983, #1e88e5);
+    --gradient-2: linear-gradient(135deg, #1e88e5, #00bcd4);
+    --gradient-3: linear-gradient(135deg, #00bcd4, #42b983);
     --glass-bg: rgba(255, 255, 255, 0.1);
     --glass-border: rgba(255, 255, 255, 0.2);
     --box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -109,19 +112,19 @@ section {
 
 .neon-hover:hover {
     color: var(--primary-color);
-    text-shadow: 0 0 5px rgba(67, 97, 238, 0.3);
+    text-shadow: 0 0 5px rgba(66, 185, 131, 0.3);
 }
 
 .gradient-btn {
     background: var(--gradient-1);
     border: none;
-    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 4px 15px rgba(66, 185, 131, 0.3);
     transition: var(--transition);
 }
 
 .gradient-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+    box-shadow: 0 8px 20px rgba(66, 185, 131, 0.4);
 }
 
 /* 英雄区 */
@@ -145,7 +148,7 @@ section {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(67, 97, 238, 0.6));
+    background: linear-gradient(135deg, rgba(44, 62, 80, 0.9), rgba(66, 185, 131, 0.6));
     z-index: 1;
 }
 
@@ -183,7 +186,7 @@ section {
 .pulse-btn {
     background: var(--gradient-2);
     border: none;
-    box-shadow: 0 4px 15px rgba(114, 9, 183, 0.3);
+    box-shadow: 0 4px 15px rgba(30, 136, 229, 0.3);
     transition: var(--transition);
     position: relative;
     overflow: hidden;
@@ -209,7 +212,7 @@ section {
 
 .pulse-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(114, 9, 183, 0.4);
+    box-shadow: 0 8px 25px rgba(30, 136, 229, 0.4);
 }
 
 /* 3D模型容器 */
@@ -236,7 +239,7 @@ section {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(76, 201, 240, 0.3), rgba(114, 9, 183, 0.3));
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.3), rgba(66, 185, 131, 0.3));
     z-index: 1;
 }
 
@@ -354,7 +357,7 @@ section {
     font-size: 2rem;
     color: white;
     margin-bottom: 20px;
-    box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 10px 20px rgba(66, 185, 131, 0.3);
 }
 
 .flip-card-front h3 {
@@ -425,7 +428,7 @@ section {
 .demo-step.active .step-number {
     background: var(--gradient-1);
     color: white;
-    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 5px 15px rgba(66, 185, 131, 0.3);
 }
 
 .step-content h4 {
@@ -459,7 +462,7 @@ section {
 
 .upload-container:hover {
     border-color: var(--primary-color);
-    background-color: rgba(67, 97, 238, 0.05);
+    background-color: rgba(66, 185, 131, 0.05);
 }
 
 .upload-ui {
@@ -502,7 +505,7 @@ section {
     display: flex;
     align-items: center;
     color: white;
-    box-shadow: 0 10px 25px rgba(114, 9, 183, 0.2);
+    box-shadow: 0 10px 25px rgba(30, 136, 229, 0.2);
 }
 
 .counter-icon {
@@ -834,7 +837,7 @@ section {
 
 .rating {
     margin-bottom: 15px;
-    color: #ffb800;
+    color: var(--warning-color);
 }
 
 .quote {
