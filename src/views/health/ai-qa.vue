@@ -154,13 +154,18 @@ export default {
       pageSuggestion: null,
       photoFile: null,
       photoUploading: false,
-      visible: true // 假设组件是可见的，用于 page suggestion 逻辑
+      visible: true,
+      isMounted: false,
+      historyLoaded: false
     };
   },
 
   computed: {
     hasMessages() {
       return this.messages.length > 0;
+    },
+    token() {
+      return this.$store.getters.token;
     },
     userId() {
       // 确保 $store 和 getters 存在
@@ -181,54 +186,42 @@ export default {
         }
       }
     },
-    userId: { // 监听 userId 变化，例如登录后
-      handler(newUserId) {
-        if (newUserId) {
-          this.loadChatHistoryFromServer();
-          if (this.pageName && this.showPreGeneratedAdvice) {
-            this.loadPageSuggestion(this.pageName);
-          }
+    token: {
+      immediate: true,
+      handler(newToken, oldToken) {
+        console.log(`[Token Watcher] Triggered. New Token: ${!!newToken}, Old Token: ${!!oldToken}`);
+        if (newToken) {
+          this.tryLoadHistory();
         } else {
-          // 用户登出或未登录，清空消息和状态
+          console.log('[Token Watcher] Token removed. Clearing messages and resetting flags.');
           this.messages = [];
           this.conversationId = null;
           this.pageSuggestion = null;
+          this.historyLoaded = false;
+          this.isMounted = false;
         }
       }
     }
   },
 
   created() {
-    if (this.userId) { // 仅在 userId 存在时加载
-        if (this.pageName && this.showPreGeneratedAdvice) {
-          this.loadPageSuggestion(this.pageName);
-        }
-        this.loadChatHistoryFromServer();
-    }
+    console.log('[Created Hook] Component created.');
   },
 
   mounted() {
-    // 使用 .native 修饰符后，不需要手动监听 keydown
-    // document.addEventListener('keydown', this.handleKeyDown);
-
-    // 检查 store 和 userId 是否准备好
-    if (this.userId) {
-      // 如果 created 时已加载，这里可能不需要重复加载，除非有特殊逻辑
-      // this.loadChatHistoryFromServer();
-      if (this.showPreGeneratedAdvice && this.pageSuggestion && !this.hasMessages) {
-        this.displayPageSuggestion();
-      }
-    }
+    console.log('[Mounted Hook] Component mounted.');
+    this.isMounted = true;
+    this.tryLoadHistory();
     this.scrollToBottom();
   },
 
   beforeDestroy() {
+    this.isMounted = false;
     if (this.eventSource) {
         this.eventSource.close();
         this.eventSource = null;
     }
     if (this.typingTimer) clearTimeout(this.typingTimer);
-    // document.removeEventListener('keydown', this.handleKeyDown);
   },
 
   methods: {
@@ -265,7 +258,6 @@ export default {
 
       this.photoFile = file;
       this.$message.success('图片已选择，点击发送按钮或按Enter上传');
-      // 不需要清空 event.target.value，因为文件引用已保存在 photoFile
     },
 
     async sendMsg() {
@@ -273,32 +265,21 @@ export default {
       const photo = this.photoFile;
 
       if (!userContent && !photo) return;
-      if (!this.userId) {
-          this.$message.error('请先登录后再进行提问。');
-          // 可以选择性地跳转到登录页
-          // this.$router.push('/login');
-          return;
-      }
 
-      const token = this.$store.getters.token; // 获取 Token
+      const token = this.$store.getters.token;
       if (!token) {
+          console.error('[SendMsg Check Failed] token is falsy');
           this.$message.error('无法获取认证信息，请重新登录。');
           return;
       }
 
-      const userMessage = {
-          role: 'user',
-          content: userContent,
-          time: this.getCurrentTime(),
-          photo: photo ? URL.createObjectURL(photo) : null // 如果有照片，创建预览URL
-      };
-      this.messages.push(userMessage);
-
       this.loading = true;
       this.isTyping = true;
-      this.input = ''; // 清空输入框
-      this.photoFile = null; // 清空文件
-      this.$refs.photoInput.value = null; // 重置文件输入
+      this.photoUploading = !!photo;
+      this.input = '';
+      const tempPhotoFile = this.photoFile;
+      this.photoFile = null;
+      if (this.$refs.photoInput) this.$refs.photoInput.value = null;
 
       this.scrollToBottom();
 
@@ -306,128 +287,72 @@ export default {
           role: 'assistant',
           content: '',
           time: this.getCurrentTime(),
-          isLoading: true // 初始设为加载中
+          isLoading: true
       };
       this.messages.push(assistantMessage);
-      const assistantMsgIndex = this.messages.length - 1; // 获取助手消息的索引
+      const assistantMsgIndex = this.messages.length - 1;
 
-      this.scrollToBottom(); // 添加新消息后滚动到底部
+      this.scrollToBottom();
+
+      const formData = new FormData();
+      const encoder = new TextEncoder();
+      
+      const contentToSend = (tempPhotoFile && !userContent) ? ' ' : userContent;
+      console.log(`[SendMsg] Content being sent in 'message' part: '${contentToSend}'`);
+
+      const messageBytes = encoder.encode(contentToSend);
+      const messageBlob = new Blob([messageBytes], { type: 'text/plain; charset=utf-8' });
+      formData.append('message', messageBlob, 'message.txt');
+
+      if (tempPhotoFile) {
+          formData.append('file', tempPhotoFile);
+      }
+      if (this.conversationId) {
+        formData.append('conversationId', this.conversationId);
+      }
 
       try {
-        if (photo) {
-          // --- 修改 /chatStream 调用 ---
-          this.photoUploading = true;
-          const formData = new FormData();
-          formData.append('prompt', userContent || '分析图片'); // 如果没有文字提示，给一个默认值
-          formData.append('image', photo);
-          // formData.append('token', token); // 移除 token
+        const response = await fetch(`${this.apiBaseUrl}/chatStream`, {
+          method: 'POST',
+          headers: {
+            'X-Token': token
+          },
+          body: formData
+        });
 
-          // 使用 Axios 发送带图片的多部分请求
-          const response = await axios.post(`${this.apiBaseUrl}/chatStream`, formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'X-Token': token // 在 headers 中添加 token
-            },
-            responseType: 'text' // 明确响应类型，虽然可能不是必须的
-          });
-
-          this.photoUploading = false;
-          this.isTyping = false;
-          this.messages[assistantMsgIndex].content = parseMarkdown(response.data || '无法获取回复'); // 使用解析器
-          this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
-          this.messages[assistantMsgIndex].time = this.getCurrentTime();
-          this.saveChatHistoryToServer(); // 保存历史记录
-
-        } else {
-          // --- 修改 /chatStream/chinese 调用 ---
-          // 使用 EventSource 处理纯文本流式响应
-          const encodedPrompt = encodeURIComponent(userContent);
-          // 移除 URL 中的 token 查询参数
-          const url = `${this.apiBaseUrl}/chatStream/chinese?prompt=${encodedPrompt}`;
-
-          if (this.eventSource) {
-            this.eventSource.close();
-          }
-
-          // 注意：标准 EventSource 不支持自定义 header。
-          // 这里假设有全局拦截器处理 token，或者后端允许其他方式验证。
-          this.eventSource = new EventSource(url, { withCredentials: true }); // withCredentials 可能需要，取决于 CORS 配置
-
-          this.eventSource.onmessage = (event) => {
-              if (this.typingTimer) clearTimeout(this.typingTimer); // 清除模拟打字效果
-              this.isTyping = false; // 停止打字指示器
-
-              const data = event.data;
-              if (data === '[DONE]') {
-                  this.eventSource.close();
-                  this.eventSource = null;
-                  this.loading = false;
-                  this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
-                  this.messages[assistantMsgIndex].time = this.getCurrentTime();
-                  this.saveChatHistoryToServer(); // 保存历史记录
-                  return;
-              }
-
-              try {
-                  const chunk = JSON.parse(data);
-                  if (chunk && chunk.choices && chunk.choices[0].delta && chunk.choices[0].delta.content) {
-                      this.messages[assistantMsgIndex].content += chunk.choices[0].delta.content;
-                      this.scrollToBottom();
-                  } else if (chunk && chunk.error) {
-                      console.error("SSE Error Chunk:", chunk.error);
-                      this.messages[assistantMsgIndex].content += `\\n[错误: ${chunk.error}]`;
-                      this.eventSource.close();
-                      this.eventSource = null;
-                      this.loading = false;
-                      this.messages[assistantMsgIndex].isLoading = false;
-                      this.messages[assistantMsgIndex].time = this.getCurrentTime();
-                  }
-              } catch (e) {
-                  // 如果 JSON 解析失败，直接附加原始数据，可能是普通文本片段
-                  if (data && data.trim()) { // 避免添加空字符串
-                    this.messages[assistantMsgIndex].content += data;
-                    this.scrollToBottom();
-                  }
-                  console.warn("Received non-JSON message or JSON parse error:", data, e);
-              }
-          };
-
-          this.eventSource.onerror = (error) => {
-              console.error('EventSource failed:', error);
-              this.eventSource.close();
-              this.eventSource = null;
-              this.loading = false;
-              this.isTyping = false;
-              this.messages[assistantMsgIndex].content += '\\n[连接错误，请稍后再试]';
-              this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
-              this.messages[assistantMsgIndex].time = this.getCurrentTime();
-          };
-
-          // 启动模拟打字效果
-          this.startTypingIndicator();
+        if (!response.ok) {
+          let errorBody = '未知错误';
+          try {
+            errorBody = await response.text();
+          } catch (e) {/* ignore */}
+          throw new Error(`请求失败 (${response.status}): ${errorBody || response.statusText}`);
         }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('text/event-stream')) {
+           console.warn('Response Content-Type is not text/event-stream, treating as plain text.');
+           const responseText = await response.text();
+           this.handleNonStreamResponse(responseText, assistantMsgIndex);
+        } else {
+           this.handleStreamResponse(response, assistantMsgIndex, assistantMessage.time);
+        }
+
       } catch (error) {
-        console.error('Error sending message:', error);
+         console.error('[SendMsg Error] Full error object caught:', error);
+         console.error('[SendMsg Error] Error message property:', error.message);
+         console.error('[SendMsg Error] Error name property:', error.name);
+        
         this.loading = false;
         this.isTyping = false;
         this.photoUploading = false;
         const errorMsg = error.response && error.response.data ? error.response.data.message || error.response.data : '发送失败，请检查网络或联系管理员';
-        this.messages[assistantMsgIndex].content = `[请求错误: ${errorMsg}]`;
-        this.messages[assistantMsgIndex].isLoading = false; // 标记加载完成
-        this.messages[assistantMsgIndex].time = this.getCurrentTime();
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
+        if (assistantMsgIndex !== -1 && assistantMsgIndex < this.messages.length) {
+          this.$set(this.messages[assistantMsgIndex], 'content', `[请求错误: ${errorMsg}]`);
+          this.$set(this.messages[assistantMsgIndex], 'isLoading', false);
+          this.$set(this.messages[assistantMsgIndex], 'time', this.getCurrentTime());
+        } else {
+           console.error('[SendMsg Error] Invalid assistantMsgIndex when handling error.')
         }
-      } finally {
-          // 确保 loading 和 typing 状态在各种情况下都能正确重置
-          // 注意：对于 EventSource，loading 状态在 [DONE] 或 error 时才重置
-          if (!this.eventSource) { // 如果不是流式请求或流已结束/错误
-            this.loading = false;
-            this.isTyping = false;
-          }
-          this.photoUploading = false; // 确保上传状态重置
-          this.scrollToBottom(); // 确保最终滚动到底部
       }
     },
 
@@ -445,35 +370,23 @@ export default {
       if (typeof content !== 'string') {
         return '';
       }
-      // 正则表达式匹配开头的用户图片 div 或 AI 图片 div
-      // 使用非捕获组 (?:...) 来匹配两种 class
       const imageDivRegex = /^(<(?:div class="uploaded-image"|div class="detection-result-image")>.*?<\/div>)/s;
       const match = content.match(imageDivRegex);
 
       if (match) {
-        // 如果找到了图片 div 在开头
-        const imageHtml = match[1]; // 提取完整的图片 HTML
-        const restContent = content.substring(imageHtml.length); // 获取图片之后的内容
+        const imageHtml = match[1];
+        const restContent = content.substring(imageHtml.length);
 
-        // 直接返回图片 HTML，并对剩余内容应用 Markdown 解析
-        // 注意：用户消息中可能已经包含了 <p> 标签，parseMarkdown 不应再次处理它
-        // 简单地拼接即可，浏览器会处理块级元素
         return imageHtml + parseMarkdown(restContent || '');
       } else {
-        // 如果开头没有图片 div，则像以前一样，对整个内容应用 Markdown 解析
         return parseMarkdown(content);
       }
     },
 
     loadChatHistoryFromServer() {
       const token = this.$store.getters.token;
-      if (!token || !this.userId) {
-        console.log('用户未登录或Token无效，不加载历史记录');
-        this.messages = []; // 确保清空
-        this.conversationId = null;
-        return;
-      }
-
+      console.log('[Load History] Starting fetch for /viewHistory (Token assumed available)');
+      
       fetch(`${this.apiBaseUrl}/viewHistory`, {
         method: 'GET',
         headers: { 'X-Token': token, 'Content-Type': 'application/json' }
@@ -513,7 +426,8 @@ export default {
         }
       })
       .catch(error => {
-        console.error('加载聊天历史失败:', error.message);
+        console.error('[Load History] Failed:', error.message);
+        this.historyLoaded = false;
         this.messages = [];
         this.conversationId = null;
       });
@@ -532,7 +446,6 @@ export default {
 
     clearMessages() {
       if (this.messages.length === 0) {
-        // this.$message.info('当前没有对话历史可清空');
         return;
       }
       this.$confirm('确定要清空当前对话的所有历史记录吗?', '提示', {
@@ -567,7 +480,6 @@ export default {
           this.$message.error(`清空历史失败: ${error.message}`);
         });
       }).catch(() => {
-        // this.$message.info('已取消清空操作');
       });
     },
 
@@ -589,19 +501,19 @@ export default {
             if (done) {
                 console.log('Stream finished.');
                 if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
-                this.loading = false; // 最终设置 loading 状态
+                this.loading = false;
                 this.isTyping = false;
                 return;
             }
 
             buffer += decoder.decode(value, { stream: true });
             const events = buffer.split('\n\n');
-            buffer = events.pop(); // Keep the last (potentially incomplete) event in buffer
+            buffer = events.pop();
 
             events.forEach(eventString => {
                 if (!eventString.trim()) return;
 
-                let eventName = 'message'; // Default SSE event name
+                let eventName = 'message';
                 let eventData = '';
 
                 const lines = eventString.split('\n');
@@ -609,11 +521,11 @@ export default {
                     if (line.startsWith('event:')) {
                         eventName = line.substring('event:'.length).trim();
                     } else if (line.startsWith('data:')) {
-                        eventData += line.substring('data:'.length).trim() + '\n'; // Accumulate multi-line data
+                        eventData += line.substring('data:'.length).trim() + '\n';
                     }
                 });
 
-                eventData = eventData.trim(); // Remove trailing newline
+                eventData = eventData.trim();
 
                 this.handleSseEvent(eventName, eventData, messageIndex, time);
             });
@@ -622,7 +534,7 @@ export default {
                 console.error('Error reading stream:', error);
                 this.handleSSEError(messageIndex, time, `读取流错误: ${error.message}`);
                 if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
-                this.loading = false; // 确保在错误时也设置 loading
+                this.loading = false;
                 this.isTyping = false;
             });
         };
@@ -644,15 +556,13 @@ export default {
             console.log('Received detectionResultImage:', eventData);
              if (messageIndex !== -1 && messageIndex < this.messages.length) {
                  const currentMsg = this.messages[messageIndex];
-                 // Prepend image, assuming text follows
                  const imageHtml = `<div class="detection-result-image"><img src="${eventData}" alt="AI检测结果" style="max-width: 200px; max-height: 200px; border-radius: 4px; margin-bottom: 5px;" /></div>`;
                  this.$set(this.messages, messageIndex, { ...currentMsg, content: imageHtml + (currentMsg.content || '') });
                  this.scrollToBottom();
              }
          } else if (eventData === '[DONE]') {
             console.log('Received [DONE] signal.');
-            // Actual completion is handled when reader.read() returns done: true
-         } else if (eventName === 'message' || eventName === 'data') { // Handle default message/data event
+         } else if (eventName === 'message' || eventName === 'data') {
              try {
                  const jsonChunk = JSON.parse(eventData);
                  const contentChunk = jsonChunk.choices?.[0]?.delta?.content;
@@ -666,7 +576,6 @@ export default {
                     this.handleSSEError(messageIndex, time, `AI处理错误: ${jsonChunk.error.message || JSON.stringify(jsonChunk.error)}`);
                  }
              } catch (err) {
-                 // If JSON parsing fails, treat as plain text chunk (might happen with some models/errors)
                  if (messageIndex !== -1 && messageIndex < this.messages.length) {
                      const currentMsg = this.messages[messageIndex];
                      this.$set(this.messages, messageIndex, { ...currentMsg, content: (currentMsg.content || '') + eventData });
@@ -691,7 +600,6 @@ export default {
         const errorDisplayMsg = `<span style="color: red;">[错误: ${escapeHtml(finalErrorMessage)}]</span>`;
         const currentMsg = this.messages[messageIndex];
         const currentContent = currentMsg.content || '';
-        // Avoid appending duplicate error messages
         if (!currentContent.includes(errorDisplayMsg)) {
              this.$set(this.messages, messageIndex, {
                ...currentMsg,
@@ -756,6 +664,47 @@ export default {
         'sleep': '睡眠质量', 'mentalHealth': '心理健康'
       };
       return pageNames[this.pageName] || this.pageName;
+    },
+
+    tryLoadHistory() {
+      console.log(`[Try Load History] Attempting. isMounted: ${this.isMounted}, token: ${!!this.token}, historyLoaded: ${this.historyLoaded}`);
+      if (this.isMounted && this.token && !this.historyLoaded) {
+        console.log('[Try Load History] Conditions met. Setting flag and calling loadChatHistoryFromServer().');
+        this.historyLoaded = true;
+        this.loadChatHistoryFromServer();
+        if (this.pageName && this.showPreGeneratedAdvice) {
+           console.log('[Try Load History] Also loading page suggestion.');
+           this.loadPageSuggestion(this.pageName);
+        }
+      } else {
+        console.log('[Try Load History] Conditions not met or already loaded. Skipping.');
+      }
+    },
+
+    readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve(e.target.result);
+        };
+        reader.onerror = (e) => {
+          reject(e.target.error);
+        };
+        reader.readAsDataURL(file);
+      });
+    },
+
+    handleNonStreamResponse(responseText, messageIndex) {
+      if (messageIndex !== -1 && messageIndex < this.messages.length) {
+        const currentMsg = this.messages[messageIndex];
+        this.$set(this.messages, messageIndex, {
+          ...currentMsg,
+          content: currentMsg.content ? currentMsg.content + '\n' + responseText : responseText
+        });
+        this.scrollToBottom();
+      } else {
+        console.error('[Handle Non-Stream Response] Invalid messageIndex');
+      }
     },
   },
 };
